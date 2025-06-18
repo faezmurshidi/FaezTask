@@ -134,6 +134,7 @@ Thumbs.db
 .cursor/workspaceStorage/
 .cursor/extensions/
 .cursor/User/
+.cursor/mcp.json
 *.swp
 *.swo
 *~
