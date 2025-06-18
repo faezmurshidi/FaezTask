@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import GitActivityWidget from './Dashboard/GitActivityWidget';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -35,20 +36,20 @@ const DailyProgressSummary = () => (
   </div>
 );
 
-const GitActivity = () => (
-  <div className="h-full bg-white rounded-lg border border-gray-200 p-4">
-    <h3 className="text-lg font-semibold text-gray-800 mb-4">Git Activity</h3>
-    <div className="text-gray-500 text-center">
-      <p>Git Activity widget coming soon...</p>
-    </div>
-  </div>
-);
-
 interface DashboardProps {
   className?: string;
+  projectPath?: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ className = '' }) => {
+const Dashboard: React.FC<DashboardProps> = ({ 
+  className = '', 
+  projectPath = '/Users/faez/Documents/FaezPM' 
+}) => {
+  // Git Activity widget that uses the project path
+  const GitActivity = () => (
+    <GitActivityWidget projectPath={projectPath} />
+  );
+
   // Default layout configuration for dashboard widgets
   const defaultLayouts = {
     lg: [
