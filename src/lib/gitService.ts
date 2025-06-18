@@ -137,7 +137,7 @@ export class GitService {
   /**
    * Push changes to remote repository
    */
-  async push(remote: string = 'origin', branch?: string): Promise<{ success: boolean; error?: string }> {
+  async push(remote: string = 'origin', branch?: string): Promise<{ success: boolean; error?: string; needsUpstream?: boolean }> {
     try {
       if (branch) {
         await this.git.push(remote, branch);
@@ -146,9 +146,40 @@ export class GitService {
       }
       return { success: true };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to push changes';
+      
+      // Check if it's an upstream branch issue
+      if (errorMessage.includes('no upstream branch') || errorMessage.includes('set-upstream')) {
+        return { 
+          success: false, 
+          error: errorMessage,
+          needsUpstream: true
+        };
+      }
+      
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Failed to push changes' 
+        error: errorMessage
+      };
+    }
+  }
+
+  /**
+   * Push changes and set upstream branch
+   */
+  async pushWithUpstream(remote: string = 'origin', branch?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const currentBranch = branch || (await this.git.branch()).current;
+      if (!currentBranch) {
+        return { success: false, error: 'No current branch found' };
+      }
+      
+      await this.git.push(['-u', remote, currentBranch]);
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to push with upstream' 
       };
     }
   }

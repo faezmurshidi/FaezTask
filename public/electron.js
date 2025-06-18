@@ -285,6 +285,35 @@ ipcMain.handle('git-push', async (event, repoPath, remote = 'origin', branch) =>
     }
     return { success: true };
   } catch (error) {
+    const errorMessage = error.message;
+    
+    // Check if it's an upstream branch issue
+    if (errorMessage.includes('no upstream branch') || errorMessage.includes('set-upstream')) {
+      return { 
+        success: false, 
+        error: errorMessage,
+        needsUpstream: true
+      };
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('git-push-upstream', async (event, repoPath, remote = 'origin', branch) => {
+  try {
+    const git = simpleGit(repoPath);
+    
+    // Get current branch if not specified
+    const currentBranch = branch || (await git.branch()).current;
+    if (!currentBranch) {
+      return { success: false, error: 'No current branch found' };
+    }
+    
+    // Push with upstream flag
+    await git.push(['-u', remote, currentBranch]);
+    return { success: true };
+  } catch (error) {
     return { success: false, error: error.message };
   }
 });

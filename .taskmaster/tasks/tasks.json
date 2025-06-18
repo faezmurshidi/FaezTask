@@ -2307,7 +2307,7 @@
             "dependencies": [
               1
             ],
-            "details": "Utilize Electron's IPC mechanisms to facilitate communication between the renderer and main processes. Implement security best practices, such as validating the sender of all IPC messages and avoiding direct exposure of Electron APIs to untrusted web content.\n<info added on 2025-06-18T03:30:01.890Z>\nSecure IPC communication implemented in preload.js and electron.js with proper contextBridge isolation. All git operations go through secure IPC channels with proper error handling. No direct shell command exposure to renderer process.\n</info added on 2025-06-18T03:30:01.890Z>",
+            "details": "Utilize Electron's IPC mechanisms to facilitate communication between the renderer and main processes. Implement security best practices, such as validating the sender of all IPC messages and avoiding direct exposure of Electron APIs to untrusted web content.\n<info added on 2025-06-18T03:30:01.890Z>\nSecure IPC communication implemented in preload.js and electron.js with proper contextBridge isolation. All git operations go through secure IPC channels with proper error handling. No direct shell command exposure to renderer process.\n</info added on 2025-06-18T03:30:01.890Z>\n<info added on 2025-06-18T03:59:22.171Z>\nEnhanced git push functionality to handle upstream branch setup. Updated GitService.push() to detect upstream errors and added pushWithUpstream() method. Enhanced IPC handlers and updated UI to show push errors with actionable solutions. Error handling flow includes detecting no upstream error, displaying a user-friendly message, and providing a \"Push & Set Upstream\" button that executes `git push -u origin main`, offering a one-click solution for resolving upstream branch issues.\n</info added on 2025-06-18T03:59:22.171Z>",
             "status": "done",
             "testStrategy": "Create tests to ensure that IPC messages are correctly transmitted and received, and that security measures effectively prevent unauthorized access or execution."
           },
@@ -2351,7 +2351,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T07:44:34.741Z",
-      "updated": "2025-06-18T03:52:25.254Z",
+      "updated": "2025-06-18T03:59:28.615Z",
       "description": "Tasks for master context"
     }
   }

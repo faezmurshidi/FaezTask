@@ -14,11 +14,13 @@ export default function GitView() {
   const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
   const [fileChanges, setFileChanges] = useState<FileStatus[]>([]);
   const [loading, setLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<'pull' | 'push' | 'push-upstream' | 'commit' | 'init' | 'stage-all' | string | null>(null);
   const [commitMessage, setCommitMessage] = useState('');
   const [remoteUrl, setRemoteUrl] = useState('');
   const [showRemoteForm, setShowRemoteForm] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [needsUpstream, setNeedsUpstream] = useState(false);
 
   // Use current project path - in a real app this would come from context
   const projectPath = '/Users/faez/Documents/FaezPM';
@@ -36,6 +38,9 @@ export default function GitView() {
       const result = await electronAPI.gitStatus(projectPath);
       if (result.success) {
         setGitStatus(result.status);
+        // Clear push error when status is refreshed
+        setPushError(null);
+        setNeedsUpstream(false);
       }
     } catch (error) {
       console.error('Failed to load git status:', error);
@@ -128,13 +133,42 @@ export default function GitView() {
 
   const handlePush = async () => {
     setActionLoading('push');
+    setPushError(null);
+    setNeedsUpstream(false);
+    
     try {
       const result = await electronAPI.gitPush(projectPath);
       if (result.success) {
         await loadGitStatus();
+      } else {
+        setPushError(result.error || 'Failed to push');
+        if (result.needsUpstream) {
+          setNeedsUpstream(true);
+        }
       }
     } catch (error) {
       console.error('Failed to push:', error);
+      setPushError('Failed to push changes');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePushUpstream = async () => {
+    setActionLoading('push-upstream');
+    setPushError(null);
+    setNeedsUpstream(false);
+    
+    try {
+      const result = await electronAPI.gitPushUpstream(projectPath);
+      if (result.success) {
+        await loadGitStatus();
+      } else {
+        setPushError(result.error || 'Failed to push with upstream');
+      }
+    } catch (error) {
+      console.error('Failed to push with upstream:', error);
+      setPushError('Failed to push with upstream');
     } finally {
       setActionLoading(null);
     }
@@ -374,30 +408,70 @@ export default function GitView() {
             </div>
           </div>
 
-          {/* Remote Actions */}
-          {gitStatus.hasRemote ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Remote Actions</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={handlePull}
-                  disabled={actionLoading === 'pull'}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {actionLoading === 'pull' ? 'Pulling...' : 'Pull Changes'}
-                </button>
-                <button
-                  onClick={handlePush}
-                  disabled={actionLoading === 'push' || gitStatus.unpushedCommits === 0}
-                  className="w-full bg-purple-600 text-white py-2 px-4 rounded-md font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
-                >
-                  {actionLoading === 'push' ? 'Pushing...' : `Push Changes ${gitStatus.unpushedCommits > 0 ? `(${gitStatus.unpushedCommits})` : ''}`}
-                </button>
+          {/* Remote Operations */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Remote Operations</h3>
+            
+            {/* Push Error Display */}
+            {pushError && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <div className="flex items-start">
+                  <div className="text-red-400 mr-2">⚠️</div>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-800 font-medium">Push Failed</p>
+                    <p className="text-xs text-red-600 mt-1">{pushError}</p>
+                    {needsUpstream && (
+                      <div className="mt-2">
+                        <p className="text-xs text-red-600 mb-2">
+                          This branch needs to be set up to track a remote branch.
+                        </p>
+                        <button
+                          onClick={handlePushUpstream}
+                          disabled={actionLoading === 'push-upstream'}
+                          className="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {actionLoading === 'push-upstream' ? 'Setting up...' : 'Push & Set Upstream'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+            )}
+            
+            <div className="flex gap-2">
+              <button
+                onClick={handlePull}
+                disabled={actionLoading === 'pull'}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {actionLoading === 'pull' ? 'Pulling...' : 'Pull'}
+              </button>
+              <button
+                onClick={handlePush}
+                disabled={actionLoading === 'push' || actionLoading === 'push-upstream'}
+                className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 disabled:opacity-50"
+              >
+                {actionLoading === 'push' ? 'Pushing...' : 'Push'}
+              </button>
             </div>
-          ) : (
+          </div>
+
+          {/* Add Remote Repository */}
+          {!gitStatus.hasRemote && (
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Add Remote</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Add Remote Repository</h3>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+                <div className="flex items-start">
+                  <div className="text-yellow-400 mr-2">💡</div>
+                  <div className="flex-1">
+                    <p className="text-sm text-yellow-800 font-medium">No Remote Repository</p>
+                    <p className="text-xs text-yellow-600 mt-1">
+                      Add a remote repository to enable push/pull operations.
+                    </p>
+                  </div>
+                </div>
+              </div>
               <div className="space-y-3">
                 <input
                   type="url"
@@ -417,9 +491,9 @@ export default function GitView() {
                     }
                   }}
                   disabled={!remoteUrl.trim()}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                  Add Remote
+                  Add Remote Repository
                 </button>
               </div>
             </div>

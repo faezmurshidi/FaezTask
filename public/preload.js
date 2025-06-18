@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitAdd: (repoPath, files) => ipcRenderer.invoke('git-add', repoPath, files),
   gitCommit: (repoPath, message) => ipcRenderer.invoke('git-commit', repoPath, message),
   gitPush: (repoPath, remote, branch) => ipcRenderer.invoke('git-push', repoPath, remote, branch),
+  gitPushUpstream: (repoPath, remote, branch) => ipcRenderer.invoke('git-push-upstream', repoPath, remote, branch),
   gitPull: (repoPath, remote, branch) => ipcRenderer.invoke('git-pull', repoPath, remote, branch),
   gitAddRemote: (repoPath, name, url) => ipcRenderer.invoke('git-add-remote', repoPath, name, url),
   gitGetRemotes: (repoPath) => ipcRenderer.invoke('git-get-remotes', repoPath),
