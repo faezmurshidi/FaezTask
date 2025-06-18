@@ -296,6 +296,18 @@ ipcMain.handle('git-push', async (event, repoPath, remote = 'origin', branch) =>
       };
     }
     
+    // Check if it's a "fetch first" issue (remote has changes)
+    if (errorMessage.includes('rejected') && 
+        (errorMessage.includes('fetch first') || 
+         errorMessage.includes('remote contains work') ||
+         errorMessage.includes('Updates were rejected'))) {
+      return { 
+        success: false, 
+        error: errorMessage,
+        needsPull: true
+      };
+    }
+    
     return { success: false, error: errorMessage };
   }
 });
@@ -313,6 +325,55 @@ ipcMain.handle('git-push-upstream', async (event, repoPath, remote = 'origin', b
     // Push with upstream flag
     await git.push(['-u', remote, currentBranch]);
     return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('git-pull-and-push', async (event, repoPath, remote = 'origin', branch) => {
+  try {
+    const git = simpleGit(repoPath);
+    
+    // First, pull the remote changes
+    let pullResult;
+    try {
+      if (branch) {
+        await git.pull(remote, branch);
+      } else {
+        await git.pull();
+      }
+      pullResult = { success: true };
+    } catch (pullError) {
+      return { 
+        success: false, 
+        error: `Failed to pull: ${pullError.message}`,
+        pullResult: { success: false, error: pullError.message }
+      };
+    }
+
+    // Then, push our changes
+    let pushResult;
+    try {
+      if (branch) {
+        await git.push(remote, branch);
+      } else {
+        await git.push();
+      }
+      pushResult = { success: true };
+    } catch (pushError) {
+      return { 
+        success: false, 
+        error: `Failed to push after pull: ${pushError.message}`,
+        pullResult,
+        pushResult: { success: false, error: pushError.message }
+      };
+    }
+
+    return { 
+      success: true,
+      pullResult,
+      pushResult
+    };
   } catch (error) {
     return { success: false, error: error.message };
   }

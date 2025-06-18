@@ -137,7 +137,7 @@ export class GitService {
   /**
    * Push changes to remote repository
    */
-  async push(remote: string = 'origin', branch?: string): Promise<{ success: boolean; error?: string; needsUpstream?: boolean }> {
+  async push(remote: string = 'origin', branch?: string): Promise<{ success: boolean; error?: string; needsUpstream?: boolean; needsPull?: boolean }> {
     try {
       if (branch) {
         await this.git.push(remote, branch);
@@ -154,6 +154,18 @@ export class GitService {
           success: false, 
           error: errorMessage,
           needsUpstream: true
+        };
+      }
+      
+      // Check if it's a "fetch first" issue (remote has changes)
+      if (errorMessage.includes('rejected') && 
+          (errorMessage.includes('fetch first') || 
+           errorMessage.includes('remote contains work') ||
+           errorMessage.includes('Updates were rejected'))) {
+        return { 
+          success: false, 
+          error: errorMessage,
+          needsPull: true
         };
       }
       
@@ -180,6 +192,45 @@ export class GitService {
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to push with upstream' 
+      };
+    }
+  }
+
+  /**
+   * Pull changes first, then push (for handling "fetch first" scenarios)
+   */
+  async pullAndPush(remote: string = 'origin', branch?: string): Promise<{ success: boolean; error?: string; pullResult?: any; pushResult?: any }> {
+    try {
+      // First, pull the remote changes
+      const pullResult = await this.pull(remote, branch);
+      if (!pullResult.success) {
+        return { 
+          success: false, 
+          error: `Failed to pull: ${pullResult.error}`,
+          pullResult
+        };
+      }
+
+      // Then, push our changes
+      const pushResult = await this.push(remote, branch);
+      if (!pushResult.success) {
+        return { 
+          success: false, 
+          error: `Failed to push after pull: ${pushResult.error}`,
+          pullResult,
+          pushResult
+        };
+      }
+
+      return { 
+        success: true,
+        pullResult,
+        pushResult
+      };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to pull and push' 
       };
     }
   }

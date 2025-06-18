@@ -76,6 +76,13 @@ export const electronAPI = {
     throw new Error('Git operations are only available in Electron');
   },
 
+  gitPullAndPush: async (repoPath: string, remote?: string, branch?: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.gitPullAndPush(repoPath, remote, branch);
+    }
+    throw new Error('Git operations are only available in Electron');
+  },
+
   gitPull: async (repoPath: string, remote?: string, branch?: string) => {
     if (electronAPI.isElectron()) {
       return window.electronAPI!.gitPull(repoPath, remote, branch);

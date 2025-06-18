@@ -14,13 +14,14 @@ export default function GitView() {
   const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
   const [fileChanges, setFileChanges] = useState<FileStatus[]>([]);
   const [loading, setLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState<'pull' | 'push' | 'push-upstream' | 'commit' | 'init' | 'stage-all' | string | null>(null);
+  const [actionLoading, setActionLoading] = useState<'pull' | 'push' | 'push-upstream' | 'pull-and-push' | 'commit' | 'init' | 'stage-all' | string | null>(null);
   const [commitMessage, setCommitMessage] = useState('');
   const [remoteUrl, setRemoteUrl] = useState('');
   const [showRemoteForm, setShowRemoteForm] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [pushError, setPushError] = useState<string | null>(null);
   const [needsUpstream, setNeedsUpstream] = useState(false);
+  const [needsPull, setNeedsPull] = useState(false);
 
   // Use current project path - in a real app this would come from context
   const projectPath = '/Users/faez/Documents/FaezPM';
@@ -41,6 +42,7 @@ export default function GitView() {
         // Clear push error when status is refreshed
         setPushError(null);
         setNeedsUpstream(false);
+        setNeedsPull(false);
       }
     } catch (error) {
       console.error('Failed to load git status:', error);
@@ -135,6 +137,7 @@ export default function GitView() {
     setActionLoading('push');
     setPushError(null);
     setNeedsUpstream(false);
+    setNeedsPull(false);
     
     try {
       const result = await electronAPI.gitPush(projectPath);
@@ -144,6 +147,8 @@ export default function GitView() {
         setPushError(result.error || 'Failed to push');
         if (result.needsUpstream) {
           setNeedsUpstream(true);
+        } else if (result.needsPull) {
+          setNeedsPull(true);
         }
       }
     } catch (error) {
@@ -158,6 +163,7 @@ export default function GitView() {
     setActionLoading('push-upstream');
     setPushError(null);
     setNeedsUpstream(false);
+    setNeedsPull(false);
     
     try {
       const result = await electronAPI.gitPushUpstream(projectPath);
@@ -169,6 +175,27 @@ export default function GitView() {
     } catch (error) {
       console.error('Failed to push with upstream:', error);
       setPushError('Failed to push with upstream');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePullAndPush = async () => {
+    setActionLoading('pull-and-push');
+    setPushError(null);
+    setNeedsUpstream(false);
+    setNeedsPull(false);
+    
+    try {
+      const result = await electronAPI.gitPullAndPush(projectPath);
+      if (result.success) {
+        await loadGitStatus();
+      } else {
+        setPushError(result.error || 'Failed to pull and push');
+      }
+    } catch (error) {
+      console.error('Failed to pull and push:', error);
+      setPushError('Failed to pull and push');
     } finally {
       setActionLoading(null);
     }
@@ -434,6 +461,20 @@ export default function GitView() {
                         </button>
                       </div>
                     )}
+                    {needsPull && (
+                      <div className="mt-2">
+                        <p className="text-xs text-red-600 mb-2">
+                          The remote repository has changes that you don't have locally. You need to pull first.
+                        </p>
+                        <button
+                          onClick={handlePullAndPush}
+                          disabled={actionLoading === 'pull-and-push'}
+                          className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {actionLoading === 'pull-and-push' ? 'Pulling & Pushing...' : 'Pull & Push'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -447,13 +488,13 @@ export default function GitView() {
               >
                 {actionLoading === 'pull' ? 'Pulling...' : 'Pull'}
               </button>
-              <button
-                onClick={handlePush}
-                disabled={actionLoading === 'push' || actionLoading === 'push-upstream'}
-                className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 disabled:opacity-50"
-              >
-                {actionLoading === 'push' ? 'Pushing...' : 'Push'}
-              </button>
+                          <button
+              onClick={handlePush}
+              disabled={actionLoading === 'push' || actionLoading === 'push-upstream' || actionLoading === 'pull-and-push'}
+              className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 disabled:opacity-50"
+            >
+              {actionLoading === 'push' ? 'Pushing...' : 'Push'}
+            </button>
             </div>
           </div>
 

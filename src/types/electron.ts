@@ -33,6 +33,7 @@ declare global {
       gitCommit: (repoPath: string, message: string) => Promise<any>;
       gitPush: (repoPath: string, remote?: string, branch?: string) => Promise<any>;
       gitPushUpstream: (repoPath: string, remote?: string, branch?: string) => Promise<any>;
+      gitPullAndPush: (repoPath: string, remote?: string, branch?: string) => Promise<any>;
       gitPull: (repoPath: string, remote?: string, branch?: string) => Promise<any>;
       gitAddRemote: (repoPath: string, name: string, url: string) => Promise<any>;
       gitGetRemotes: (repoPath: string) => Promise<any>;
