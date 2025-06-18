@@ -1061,86 +1061,6 @@
         ]
       },
       {
-        "id": 14,
-        "title": "Implement Mem0 Integration for AI Memory",
-        "description": "Integrate Mem0 for per-project context persistence in AI interactions.",
-        "details": "Implement Mem0 client using their latest API (check https://mem0.ai for current version). Create a service to manage memory persistence per project. Integrate with the AI chat interface to provide context for conversations. Implement memory retrieval and update mechanisms.",
-        "testStrategy": "Test memory persistence across multiple chat sessions. Verify that project-specific context is correctly maintained. Test memory retrieval speed and accuracy. Ensure that memory updates do not interfere with ongoing conversations.",
-        "priority": "medium",
-        "dependencies": [
-          7
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Implement Mem0 Client",
-            "description": "Set up the Mem0 SDK in the project, configure authentication using the API key, and instantiate the MemoryClient for use in the application.",
-            "dependencies": [],
-            "details": "Install the Mem0 SDK (e.g., via pip), obtain and securely store the API key, and verify that the MemoryClient can be instantiated and basic API calls can be made.",
-            "status": "pending"
-          },
-          {
-            "id": 2,
-            "title": "Build Memory Management Service",
-            "description": "Develop a service layer that abstracts Mem0 client operations, providing methods for adding, retrieving, and updating memories per user or project context.",
-            "dependencies": [
-              1
-            ],
-            "details": "Design a service interface that wraps Mem0 client methods (add, search, get_all) and handles context-specific logic such as user/project scoping and error handling.",
-            "status": "pending"
-          },
-          {
-            "id": 3,
-            "title": "Integrate Memory Service with AI Chat",
-            "description": "Connect the memory management service to the AI chat system so that chat interactions can store and retrieve context from Mem0.",
-            "dependencies": [
-              2
-            ],
-            "details": "Modify the AI chat workflow to call the memory service for storing new interactions and retrieving relevant context before generating responses.",
-            "status": "pending"
-          },
-          {
-            "id": 4,
-            "title": "Implement Retrieval Mechanisms",
-            "description": "Develop logic to query Mem0 for relevant memories based on the current chat context, user, and project, ensuring efficient and accurate retrieval.",
-            "dependencies": [
-              3
-            ],
-            "details": "Use Mem0's search and filtering capabilities to fetch contextually relevant memories, optimizing for latency and token usage as per Mem0's documentation.",
-            "status": "pending"
-          },
-          {
-            "id": 5,
-            "title": "Implement Update Mechanisms",
-            "description": "Enable the system to update or append to existing memories in Mem0 as user preferences or project context evolve.",
-            "dependencies": [
-              4
-            ],
-            "details": "Design update logic to modify or extend stored memories, ensuring that changes are reflected in future retrievals and that memory consistency is maintained.",
-            "status": "pending"
-          },
-          {
-            "id": 6,
-            "title": "Test Persistence and Retrieval Accuracy",
-            "description": "Develop and execute tests to verify that memories are correctly persisted, retrieved, and updated, and that the AI chat uses them accurately.",
-            "dependencies": [
-              5
-            ],
-            "details": "Create test cases for adding, retrieving, and updating memories; validate that the AI chat reflects memory changes and maintains context across sessions.",
-            "status": "pending"
-          },
-          {
-            "id": 7,
-            "title": "Monitor and Optimize Memory Integration",
-            "description": "Set up monitoring and logging to track memory usage, retrieval latency, and accuracy, and optimize integration based on observed metrics.",
-            "dependencies": [],
-            "details": "Implement logging for memory operations, analyze performance and accuracy data, and refine retrieval/update strategies to improve user experience and system efficiency.",
-            "status": "pending"
-          }
-        ]
-      },
-      {
         "id": 15,
         "title": "Develop Timesheet Export Functionality",
         "description": "Implement feature to export timesheet data for reporting purposes.",
@@ -1208,186 +1128,6 @@
               5
             ],
             "details": "Perform manual and automated checks to ensure the integrity and accuracy of the exported data.",
-            "status": "pending"
-          }
-        ]
-      },
-      {
-        "id": 16,
-        "title": "Implement Task Master File Compatibility",
-        "description": "Develop read/write compatibility with Task Master file format.",
-        "details": "Analyze Task Master file format and create a parser using a library like yaml (version 2.2.1) if it's YAML-based. Implement functions to read from and write to .taskmaster files. Create a service to sync Task Master files with the application's task data. Use chokidar (version 3.5.3) to watch for file changes.",
-        "testStrategy": "Test reading various Task Master file formats. Verify that tasks are correctly imported into the application. Test writing tasks back to Task Master files. Ensure bidirectional sync works correctly with the VS Code extension.",
-        "priority": "medium",
-        "dependencies": [
-          5
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Analyze Supported File Formats",
-            "description": "Identify and document the external file formats to be supported for Task Master compatibility, including their structure and data mapping requirements.",
-            "dependencies": [],
-            "details": "Review documentation and sample files to determine format specifications (e.g., JSON, CSV, XML).",
-            "status": "pending"
-          },
-          {
-            "id": 2,
-            "title": "Implement File Format Parser",
-            "description": "Develop a parser that can accurately read and interpret the identified file formats, converting them into Task Master’s internal data structures.",
-            "dependencies": [
-              1
-            ],
-            "details": "Ensure robust error handling and support for all required fields and edge cases.",
-            "status": "pending"
-          },
-          {
-            "id": 3,
-            "title": "Build Read/Write Functions",
-            "description": "Create functions to read data from and write data to the supported file formats, enabling import and export operations.",
-            "dependencies": [
-              2
-            ],
-            "details": "Ensure data integrity and correct mapping between file and application data models.",
-            "status": "pending"
-          },
-          {
-            "id": 4,
-            "title": "Integrate with Application Data Sync",
-            "description": "Establish mechanisms to synchronize file-based data with Task Master’s internal application state, handling updates and conflict resolution.",
-            "dependencies": [
-              3
-            ],
-            "details": "Design sync logic to ensure consistency between file and app data, including transformation rules if needed.",
-            "status": "pending"
-          },
-          {
-            "id": 5,
-            "title": "Set Up File Watcher",
-            "description": "Implement a file watcher to monitor changes in the external file(s) and trigger synchronization routines automatically.",
-            "dependencies": [
-              4
-            ],
-            "details": "Use appropriate libraries or OS hooks to detect file changes efficiently and reliably.",
-            "status": "pending"
-          },
-          {
-            "id": 6,
-            "title": "Test Bidirectional Synchronization",
-            "description": "Develop and execute test cases to validate that changes in either the file or the application are correctly reflected in the other, ensuring robust bidirectional sync.",
-            "dependencies": [
-              5
-            ],
-            "details": "Include edge cases such as simultaneous edits, file corruption, and partial writes.",
-            "status": "pending"
-          },
-          {
-            "id": 7,
-            "title": "Document Integration and Usage",
-            "description": "Prepare comprehensive documentation covering setup, supported formats, sync behavior, troubleshooting, and best practices for users and developers.",
-            "dependencies": [],
-            "details": "Include code examples, configuration options, and known limitations.",
-            "status": "pending"
-          }
-        ]
-      },
-      {
-        "id": 17,
-        "title": "Develop RAG Capabilities for AI Assistant",
-        "description": "Implement Retrieval-Augmented Generation for AI to leverage project documentation.",
-        "details": "Use Pinecone (version 0.8.0) for vector storage. Implement text embedding using TensorFlow.js (version 4.7.0) or a pre-trained model. Create a service to index and query project documentation. Integrate with the AI chat interface to provide relevant context from documentation.",
-        "testStrategy": "Test document indexing and retrieval accuracy. Verify that AI responses incorporate relevant documentation. Test performance with large document sets. Ensure that document updates are reflected in AI responses.",
-        "priority": "medium",
-        "dependencies": [
-          7,
-          8,
-          14
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Set Up Pinecone Account and Environment",
-            "description": "Create a Pinecone account, obtain API keys, and configure the development environment for Pinecone integration.",
-            "dependencies": [],
-            "details": "Register at pinecone.io, generate API keys, and install necessary Python packages for Pinecone.",
-            "status": "pending"
-          },
-          {
-            "id": 2,
-            "title": "Create and Configure Pinecone Index",
-            "description": "Set up a Pinecone index with appropriate dimensions and similarity metrics to store vector embeddings.",
-            "dependencies": [
-              1
-            ],
-            "details": "Define index name, set vector dimensions (e.g., 1536 for OpenAI embeddings), and choose similarity metric (e.g., cosine).",
-            "status": "pending"
-          },
-          {
-            "id": 3,
-            "title": "Implement Text Embedding Pipeline",
-            "description": "Develop a pipeline to convert raw text documents into vector embeddings using a suitable model (e.g., OpenAI, Hugging Face).",
-            "dependencies": [
-              2
-            ],
-            "details": "Select embedding model, preprocess text, and generate embeddings compatible with Pinecone index dimensions.",
-            "status": "pending"
-          },
-          {
-            "id": 4,
-            "title": "Build Indexing Service",
-            "description": "Create a service to ingest documents, generate embeddings, and store them in the Pinecone index with relevant metadata.",
-            "dependencies": [
-              3
-            ],
-            "details": "Design APIs or scripts to handle document ingestion, embedding generation, and upserting vectors into Pinecone.",
-            "status": "pending"
-          },
-          {
-            "id": 5,
-            "title": "Integrate Retrieval with AI Chat System",
-            "description": "Connect the Pinecone-powered retrieval system to an AI chat interface, enabling retrieval-augmented generation (RAG).",
-            "dependencies": [
-              4
-            ],
-            "details": "Implement logic for the chat system to query Pinecone for relevant context and feed results into the AI model for response generation.",
-            "status": "pending"
-          },
-          {
-            "id": 6,
-            "title": "Implement Document Update and Deletion Handling",
-            "description": "Enable the system to update or delete documents and their embeddings in Pinecone as source data changes.",
-            "dependencies": [
-              4
-            ],
-            "details": "Develop mechanisms for updating existing vectors and removing obsolete ones from the index.",
-            "status": "pending"
-          },
-          {
-            "id": 7,
-            "title": "Test Retrieval Accuracy and Relevance",
-            "description": "Evaluate the system's ability to retrieve relevant documents and context for user queries.",
-            "dependencies": [
-              5
-            ],
-            "details": "Design test cases, measure precision/recall, and analyze retrieval results for quality assurance.",
-            "status": "pending"
-          },
-          {
-            "id": 8,
-            "title": "Optimize Performance and Scalability",
-            "description": "Analyze and improve the performance of embedding generation, indexing, and retrieval operations.",
-            "dependencies": [],
-            "details": "Profile system bottlenecks, tune Pinecone index parameters, and optimize embedding/model inference pipelines.",
-            "status": "pending"
-          },
-          {
-            "id": 9,
-            "title": "Document System Architecture and Usage",
-            "description": "Create comprehensive documentation covering setup, usage, and maintenance of the RAG system.",
-            "dependencies": [],
-            "details": "Include architecture diagrams, API references, and operational guidelines for future maintainers.",
             "status": "pending"
           }
         ]
@@ -1969,10 +1709,7 @@
           11,
           12,
           13,
-          14,
           15,
-          16,
-          17,
           18,
           19,
           20,
@@ -2331,11 +2068,37 @@
             "testStrategy": "Review documentation for completeness and accuracy, ensuring all features are properly documented with usage examples."
           }
         ]
+      },
+      {
+        "id": 28,
+        "title": "Implement Document Upload and Markdown Conversion",
+        "description": "Develop a feature to upload documents to the knowledge base and convert them to markdown using MarkItDown.",
+        "details": "Implement a document upload interface within the knowledge base view, allowing users to select files from their local system. Use the MarkItDown library to convert uploaded documents into markdown format. Ensure that the conversion process handles various document types such as DOCX, PDF, and plain text. Integrate the converted markdown content into the existing knowledge base structure, maintaining document categorization and searchability. Implement error handling for unsupported file types and conversion failures. Ensure that the user interface provides feedback on the upload and conversion status.",
+        "testStrategy": "Test the document upload functionality with various file types (DOCX, PDF, TXT) to ensure compatibility. Verify that the conversion to markdown is accurate and retains the original document's structure and formatting. Test the integration of converted markdown into the knowledge base, ensuring it is searchable and correctly categorized. Conduct tests for error handling by attempting to upload unsupported file types and simulating conversion failures. Ensure the user interface provides clear feedback during the upload and conversion process.",
+        "status": "pending",
+        "dependencies": [
+          11
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Create Executable Mac App using Electron Forge",
+        "description": "Package the application as a standalone executable for macOS using Electron Forge.",
+        "details": "To create a standalone executable for macOS, first ensure that the Electron and Next.js project structure is correctly set up (refer to Task 1). Install Electron Forge by running `npm install --save-dev @electron-forge/cli` and initialize it using `npx electron-forge import`. Configure the Forge configuration in `package.json` to specify the macOS target. Use the `make` command provided by Electron Forge to package the app. Ensure that all necessary assets and configurations are included for macOS compatibility, such as the Info.plist file and any required entitlements. Test the packaged app on a macOS system to ensure it launches correctly and all features work as expected.",
+        "testStrategy": "1. Verify that the Electron Forge setup is correctly configured by running `npx electron-forge start` and ensuring the app launches in development mode.\n2. Use `npx electron-forge make` to create the macOS executable and check that the process completes without errors.\n3. Install the generated `.dmg` or `.app` file on a macOS system and verify that the application launches correctly.\n4. Test all major functionalities of the app to ensure they work as expected on macOS.\n5. Check that the app icon, name, and other metadata are correctly displayed in the macOS Finder and Dock.",
+        "status": "done",
+        "dependencies": [
+          1
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-06-16T07:44:34.741Z",
-      "updated": "2025-06-18T06:48:02.261Z",
+      "updated": "2025-06-18T08:32:11.706Z",
       "description": "Tasks for master context"
     }
   }

@@ -44,25 +44,29 @@ async function createWindow() {
   });
 
   // Load the app (handle port changes)
-  const startUrl = isDev 
-    ? 'http://localhost:3000' // Next.js default port
-    : `file://${path.join(__dirname, '../out/index.html')}`;
-  
-  // Try to load with fallback
-  try {
-    await mainWindow.loadURL(startUrl);
-    console.log(`Successfully loaded: ${startUrl}`);
-    // Show window immediately after successful load
-    mainWindow.show();
-    mainWindow.focus();
-  } catch (error) {
-    console.log(`Failed to load ${startUrl}, trying port 3001...`);
-    const fallbackUrl = isDev ? 'http://localhost:3001' : startUrl;
-    await mainWindow.loadURL(fallbackUrl);
-    // Show window after fallback load
-    mainWindow.show();
-    mainWindow.focus();
+  if (isDev) {
+    // Development mode - load from localhost
+    try {
+      await mainWindow.loadURL('http://localhost:3000');
+      console.log('Successfully loaded: http://localhost:3000');
+    } catch (error) {
+      console.log('Failed to load localhost:3000, trying port 3001...');
+      await mainWindow.loadURL('http://localhost:3001');
+    }
+  } else {
+    // Production mode - load from packaged files
+    // When using extraResource, files are in Resources directory alongside app.asar
+    const resourcesPath = process.resourcesPath;
+    const htmlPath = path.join(resourcesPath, 'out/index.html');
+    console.log('Loading file from:', htmlPath);
+    console.log('Resources path:', resourcesPath);
+    await mainWindow.loadFile(htmlPath);
+    console.log('Successfully loaded packaged app');
   }
+  
+  // Show window after successful load
+  mainWindow.show();
+  mainWindow.focus();
 
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {

@@ -96,7 +96,7 @@ export const useTaskStore = create<TaskState & TaskActions>()(
           // Initial state
           tasks: {},
           subtasks: {},
-          selectedTaskId: null,
+          selectedTaskId: null as string | null,
           loading: false,
           error: null,
           currentProject: '',

@@ -1,12 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Terminal as XTerm } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import { WebLinksAddon } from '@xterm/addon-web-links';
-
-// Import xterm CSS
-import '@xterm/xterm/css/xterm.css';
 
 interface SimpleTerminalProps {
   cwd?: string;
@@ -20,8 +14,8 @@ const SimpleTerminal: React.FC<SimpleTerminalProps> = ({
   onClose
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<XTerm | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
+  const xtermRef = useRef<any | null>(null);
+  const fitAddonRef = useRef<any | null>(null);
   const [terminalId, setTerminalId] = useState<number | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -36,60 +30,73 @@ const SimpleTerminal: React.FC<SimpleTerminalProps> = ({
     const initTerminal = async () => {
       if (!isClient || !terminalRef.current || xtermRef.current) return;
 
-      // Create xterm instance with proper configuration
-      const xterm = new XTerm({
-        theme: {
-          background: '#1e1e1e',
-          foreground: '#d4d4d4',
-          cursor: '#d4d4d4',
-          black: '#000000',
-          red: '#cd3131',
-          green: '#0dbc79',
-          yellow: '#e5e510',
-          blue: '#2472c8',
-          magenta: '#bc3fbc',
-          cyan: '#11a8cd',
-          white: '#e5e5e5',
-          brightBlack: '#666666',
-          brightRed: '#f14c4c',
-          brightGreen: '#23d18b',
-          brightYellow: '#f5f543',
-          brightBlue: '#3b8eea',
-          brightMagenta: '#d670d6',
-          brightCyan: '#29b8db',
-          brightWhite: '#e5e5e5'
-        },
-        fontFamily: '"Cascadia Code", "Consolas", "Monaco", monospace',
-        fontSize: 14,
-        cursorBlink: true,
-        convertEol: true,
-        scrollback: 1000,
-        // Critical settings for proper shell integration
-        allowProposedApi: true,
-        allowTransparency: false,
-        altClickMovesCursor: true,
-        macOptionIsMeta: true,
-        rightClickSelectsWord: false,
-        windowsMode: false
-      });
-
-      // Add addons
-      const fitAddon = new FitAddon();
-      const webLinksAddon = new WebLinksAddon();
-
-      xterm.loadAddon(fitAddon);
-      xterm.loadAddon(webLinksAddon);
-
-      // Open terminal
-      xterm.open(terminalRef.current);
-      fitAddon.fit();
-
-      // Store references
-      xtermRef.current = xterm;
-      fitAddonRef.current = fitAddon;
-
-      // Try to create backend terminal
       try {
+        // Dynamic imports to avoid SSR issues
+        const [
+          { Terminal: XTerm },
+          { FitAddon },
+          { WebLinksAddon }
+        ] = await Promise.all([
+          import('@xterm/xterm'),
+          import('@xterm/addon-fit'),
+          import('@xterm/addon-web-links')
+        ]);
+
+        // Note: xterm CSS will be loaded via global styles in _app.tsx or layout.tsx
+
+        // Create xterm instance with proper configuration
+        const xterm = new XTerm({
+          theme: {
+            background: '#1e1e1e',
+            foreground: '#d4d4d4',
+            cursor: '#d4d4d4',
+            black: '#000000',
+            red: '#cd3131',
+            green: '#0dbc79',
+            yellow: '#e5e510',
+            blue: '#2472c8',
+            magenta: '#bc3fbc',
+            cyan: '#11a8cd',
+            white: '#e5e5e5',
+            brightBlack: '#666666',
+            brightRed: '#f14c4c',
+            brightGreen: '#23d18b',
+            brightYellow: '#f5f543',
+            brightBlue: '#3b8eea',
+            brightMagenta: '#d670d6',
+            brightCyan: '#29b8db',
+            brightWhite: '#e5e5e5'
+          },
+          fontFamily: '"Cascadia Code", "Consolas", "Monaco", monospace',
+          fontSize: 14,
+          cursorBlink: true,
+          convertEol: true,
+          scrollback: 1000,
+          // Critical settings for proper shell integration
+          allowProposedApi: true,
+          allowTransparency: false,
+          altClickMovesCursor: true,
+          macOptionIsMeta: true,
+          rightClickSelectsWord: false,
+          windowsMode: false
+        });
+
+        // Add addons
+        const fitAddon = new FitAddon();
+        const webLinksAddon = new WebLinksAddon();
+
+        xterm.loadAddon(fitAddon);
+        xterm.loadAddon(webLinksAddon);
+
+        // Open terminal
+        xterm.open(terminalRef.current);
+        fitAddon.fit();
+
+        // Store references
+        xtermRef.current = xterm;
+        fitAddonRef.current = fitAddon;
+
+        // Try to create backend terminal
         const electronAPI = (window as any).electronAPI;
         console.log('ElectronAPI available:', !!electronAPI);
         console.log('Terminal API available:', !!electronAPI?.terminal);
@@ -158,7 +165,9 @@ const SimpleTerminal: React.FC<SimpleTerminalProps> = ({
         }
       } catch (error) {
         console.error('Terminal initialization error:', error);
-        xterm.write('\x1b[31mTerminal initialization failed\x1b[0m\r\n');
+        if (xtermRef.current) {
+          xtermRef.current.write('\x1b[31mTerminal initialization failed\x1b[0m\r\n');
+        }
       }
     };
 
