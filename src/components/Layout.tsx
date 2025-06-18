@@ -9,6 +9,7 @@ import ProjectList from './ProjectList';
 import GitView from './GitView';
 import TaskBoard from './TaskBoard';
 import Terminal from './Terminal/Terminal';
+import Focus from './Focus';
 
 interface LayoutProps {
   children: ReactNode;
@@ -49,32 +50,13 @@ export default function Layout({ children }: LayoutProps) {
         case 'focus':
           return (
             <div className="flex h-full">
-              {/* Left side - Task Details */}
-              <div className="w-1/2 border-r border-gray-200 overflow-auto">
-                <div className="p-6">
-                                     <h2 className="text-xl font-semibold text-gray-900 mb-4">Today&apos;s Focus</h2>
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <h3 className="text-lg font-medium text-gray-800 mb-2">Next Task (task-master next)</h3>
-                    <p className="text-gray-600 text-sm mb-4">
-                      This will show the output of `task-master next` command with full task details, 
-                      implementation instructions, and suggested actions.
-                    </p>
-                    <div className="bg-gray-50 rounded p-3 text-sm text-gray-700">
-                      <p className="font-medium">Task Details will appear here:</p>
-                      <ul className="mt-2 space-y-1 text-xs">
-                        <li>• Task title and description</li>
-                        <li>• Implementation details</li>
-                        <li>• Dependencies status</li>
-                        <li>• Subtasks breakdown</li>
-                        <li>• Suggested next actions</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+              {/* Left side - Focus Component */}
+              <div className="flex-1">
+                <Focus projectPath={selectedProject.local_folder_path || '/Users/faez/Documents/FaezPM'} />
               </div>
               
               {/* Right side - Terminal */}
-              <div className="w-1/2 bg-gray-900">
+              <div className="w-96 bg-gray-900">
                 <Terminal />
               </div>
             </div>

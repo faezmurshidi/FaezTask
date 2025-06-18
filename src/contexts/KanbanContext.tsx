@@ -145,7 +145,7 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
     };
   };
 
-  // Load tasks from task-master CLI via Electron IPC
+  // Load tasks from .taskmaster/tasks/tasks.json via Electron IPC
   const loadTasks = useCallback(async (projectPath?: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
@@ -160,42 +160,37 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
       }
 
       const currentProjectPath = projectPath || '/Users/faez/Documents/FaezPM';
-      console.log('Loading tasks from task-master for project:', currentProjectPath);
+      console.log('Loading tasks from .taskmaster/tasks/tasks.json for project:', currentProjectPath);
       
-      const result = await (window as any).electronAPI.taskmaster.loadTasks(currentProjectPath) as TaskMasterLoadResult;
+      // Use the same approach as Focus component - read tasks.json directly
+      const tasksPath = `${currentProjectPath}/.taskmaster/tasks/tasks.json`;
+      const result = await (window as any).electronAPI.readFile(tasksPath);
       
-      if (result.success) {
-        const transformedTasks = result.tasks.map(transformTaskMasterTask);
-        dispatch({ type: 'SET_TASKS', payload: transformedTasks });
-        console.log(`Loaded ${transformedTasks.length} tasks from task-master (${result.source})`);
-        
-        // Start file watching for real-time updates
-        const watchResult = await (window as any).electronAPI.taskmaster.startFileWatching(currentProjectPath) as TaskMasterFileWatchResult;
-        if (watchResult.success) {
-          console.log('File watching started:', watchResult.watchedPath);
-          
-          // Set up real-time update listener
-          cleanupFileWatchingRef.current = (window as any).electronAPI.taskmaster.onTasksUpdated((data: TaskMasterUpdatedData) => {
-            if (data.success) {
-              const transformedTasks = data.tasks?.map(transformTaskMasterTask) || [];
-              dispatch({ type: 'SET_TASKS', payload: transformedTasks });
-              console.log('Tasks updated from file change:', transformedTasks.length);
-            } else {
-              console.error('File update error:', data.error);
-            }
-          });
-        }
-      } else {
-        dispatch({ type: 'SET_ERROR', payload: result.error || 'Failed to load tasks' });
-        console.error('Failed to load tasks:', result.error);
+      if (!result.success || !result.content) {
+        throw new Error(result.error || 'Failed to read tasks.json file');
       }
+      
+      console.log('Successfully read tasks.json, content length:', result.content.length);
+      const taskData = JSON.parse(result.content);
+      
+      // Extract tasks from master tag
+      const tmTasks = taskData.master?.tasks || [];
+      console.log('Found tasks in master tag:', tmTasks.length);
+      
+      const transformedTasks = tmTasks.map(transformTaskMasterTask);
+      dispatch({ type: 'SET_TASKS', payload: transformedTasks });
+      console.log(`Loaded ${transformedTasks.length} tasks from .taskmaster/tasks/tasks.json`);
+      
+      // TODO: Implement file watching for real-time updates
+      // For now, we'll just load the tasks without file watching
+      
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to load tasks' });
       console.error('Error loading tasks:', error);
     }
   }, [isElectron]);
 
-  // Update task via task-master CLI
+  // Update task - simplified for now, just optimistic update
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
     if (!isElectron) {
       // Mock implementation for web development
@@ -205,30 +200,24 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
     }
 
     try {
-      // Optimistic update
+      // For now, just do optimistic update
+      // TODO: Implement actual task-master CLI integration for updates
       dispatch({ type: 'UPDATE_TASK', payload: { taskId, updates } });
+      console.log(`Task ${taskId} updated (optimistic update only)`);
       
-      const result = await (window as any).electronAPI.taskmaster.updateTask(
-        projectPath || '/Users/faez/Documents/FaezPM',
-        taskId,
-        updates
-      ) as TaskMasterResult;
+      // Note: To fully implement this, we would need to:
+      // 1. Read the current tasks.json file
+      // 2. Update the specific task
+      // 3. Write back to tasks.json file
+      // OR integrate with task-master CLI commands like `tm update-task`
       
-      if (!result.success) {
-        // Rollback on error
-        console.error('Failed to update task:', result.error);
-        dispatch({ type: 'SET_ERROR', payload: result.error || 'Failed to update task' });
-        // TODO: Implement proper rollback logic
-      } else {
-        console.log(`Task ${taskId} updated successfully`);
-      }
     } catch (error) {
       console.error('Error updating task:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to update task' });
     }
-  }, [isElectron, projectPath]);
+  }, [isElectron]);
 
-  // Move task between columns with rollback support
+  // Move task between columns - simplified for now, just optimistic update
   const moveTask = useCallback(async (taskId: string, newStatus: TaskStatus) => {
     if (!isElectron) {
       // Mock implementation for web development
@@ -238,42 +227,29 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
     }
 
     try {
-      // Get current task for rollback
+      // Get current task for potential rollback
       const currentTask = state.tasks.find(task => task.id === taskId);
       const previousStatus = currentTask?.status;
       
       // Optimistic update
       dispatch({ type: 'MOVE_TASK', payload: { taskId, newStatus, previousStatus } });
+      console.log(`Task ${taskId} moved to ${newStatus} (optimistic update only)`);
       
-      const result = await (window as any).electronAPI.taskmaster.updateTaskStatus(
-        projectPath || '/Users/faez/Documents/FaezPM',
-        taskId,
-        newStatus,
-        previousStatus
-      ) as TaskMasterTaskResult;
+      // TODO: Implement actual task-master CLI integration for status updates
+      // For now, we just do the optimistic update without backend persistence
       
-      if (!result.success) {
-        // Rollback on error
-        if (previousStatus) {
-          dispatch({ type: 'ROLLBACK_TASK', payload: { taskId, status: previousStatus } });
-        }
-        console.error('Failed to move task:', result.error);
-        dispatch({ type: 'SET_ERROR', payload: result.error || 'Failed to move task' });
-      } else {
-        console.log(`Task ${taskId} moved to ${newStatus}`);
-      }
     } catch (error) {
       console.error('Error moving task:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to move task' });
     }
-  }, [isElectron, projectPath, state.tasks]);
+  }, [isElectron, state.tasks]);
 
   // Select task for detail panel
   const selectTask = useCallback((task: Task | null) => {
     dispatch({ type: 'SELECT_TASK', payload: task });
   }, []);
 
-  // Add new task
+  // Add new task - simplified for now
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
     if (!isElectron) {
       // Mock implementation for web development
@@ -292,31 +268,27 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
     }
 
     try {
-      const result = await (window as any).electronAPI.taskmaster.addTask(
-        projectPath || '/Users/faez/Documents/FaezPM',
-        {
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          dependencies: task.dependencies,
-        }
-      ) as TaskMasterResult;
+      // For now, create a temporary task ID and add optimistically
+      const taskWithId = { 
+        ...task, 
+        id: `temp-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
       
-      if (result.success) {
-        // Reload tasks to get the new task with proper ID
-        await loadTasks();
-        console.log('Task added successfully');
-      } else {
-        dispatch({ type: 'SET_ERROR', payload: result.error || 'Failed to add task' });
-        console.error('Failed to add task:', result.error);
-      }
+      dispatch({ type: 'ADD_TASK', payload: taskWithId });
+      console.log('Added new task (optimistic, temporary ID):', taskWithId);
+      
+      // TODO: Implement actual task-master CLI integration for adding tasks
+      // This would involve using task-master CLI commands like `tm add-task`
+      
     } catch (error) {
       console.error('Error adding task:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to add task' });
     }
-  }, [isElectron, projectPath, loadTasks]);
+  }, [isElectron]);
 
-  // Delete task
+  // Delete task - simplified for now
   const deleteTask = useCallback(async (taskId: string) => {
     if (!isElectron) {
       // Mock implementation for web development
@@ -330,38 +302,31 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
     }
 
     try {
-      const result = await (window as any).electronAPI.taskmaster.deleteTask(
-        projectPath || '/Users/faez/Documents/FaezPM',
-        taskId
-      ) as TaskMasterTaskResult;
+      // For now, just do optimistic delete
+      dispatch({ type: 'DELETE_TASK', payload: taskId });
+      console.log(`Task ${taskId} deleted (optimistic update only)`);
       
-      if (result.success) {
-        dispatch({ type: 'DELETE_TASK', payload: taskId });
-        console.log(`Task ${taskId} deleted successfully`);
-      } else {
-        dispatch({ type: 'SET_ERROR', payload: result.error || 'Failed to delete task' });
-        console.error('Failed to delete task:', result.error);
-      }
+      // TODO: Implement actual task-master CLI integration for deleting tasks
+      // This would involve using task-master CLI commands like `tm remove-task`
+      
     } catch (error) {
       console.error('Error deleting task:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to delete task' });
     }
-  }, [isElectron, projectPath]);
+  }, [isElectron]);
 
   // Auto-load tasks on mount and when projectPath changes
   useEffect(() => {
     loadTasks(projectPath);
     
-    // Cleanup file watching on unmount
+    // Cleanup any watchers on unmount
     return () => {
       if (cleanupFileWatchingRef.current) {
         cleanupFileWatchingRef.current();
         cleanupFileWatchingRef.current = null;
       }
       
-      if (isElectron) {
-        (window as any).electronAPI.taskmaster.stopFileWatching().catch(console.error);
-      }
+      // TODO: Implement file watching cleanup when file watching is added
     };
   }, [projectPath, loadTasks, isElectron]);
 

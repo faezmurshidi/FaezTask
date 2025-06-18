@@ -7,7 +7,7 @@ declare global {
       // File operations
       showSaveDialog: (options: any) => Promise<any>;
       showOpenDialog: (options: any) => Promise<any>;
-      readFile: (filePath: string) => Promise<any>;
+      readFile: (filePath: string) => Promise<{ success: boolean; content?: string; error?: string }>;
       writeFile: (filePath: string, content: string) => Promise<any>;
       
       // Project operations

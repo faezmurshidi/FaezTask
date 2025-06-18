@@ -19,7 +19,7 @@ export const electronAPI = {
     throw new Error('File operations are only available in Electron');
   },
 
-  readFile: async (filePath: string) => {
+  readFile: async (filePath: string): Promise<{ success: boolean; content?: string; error?: string }> => {
     if (electronAPI.isElectron()) {
       return window.electronAPI!.readFile(filePath);
     }
