@@ -4,6 +4,7 @@ import React from 'react';
 import { useTabContext } from '../contexts/TabContext';
 import TaskBoard from './TaskBoard';
 import Terminal from './Terminal/Terminal';
+import Dashboard from './Dashboard';
 
 const TabContent: React.FC = () => {
   const { tabs, activeTabId } = useTabContext();
@@ -28,14 +29,7 @@ const TabContent: React.FC = () => {
           </div>
         );
       case 'dashboard':
-        return (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
-              <p className="text-gray-600">Welcome to your personal software project management companion</p>
-            </div>
-          </div>
-        );
+        return <Dashboard />;
       default:
         return (
           <div className="flex-1 flex items-center justify-center bg-gray-50">

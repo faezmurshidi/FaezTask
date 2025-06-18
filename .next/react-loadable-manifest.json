@@ -1,1 +1,20 @@
-{}
+{
+  "components/Terminal/Terminal.tsx -> @xterm/addon-fit": {
+    "id": 7700,
+    "files": [
+      "static/chunks/700.f1e83e229733431f.js"
+    ]
+  },
+  "components/Terminal/Terminal.tsx -> @xterm/xterm": {
+    "id": 484,
+    "files": [
+      "static/chunks/ba16dcd3-632252cceab06791.js"
+    ]
+  },
+  "contexts/KanbanContext.tsx -> @/data/mockTasks": {
+    "id": 5841,
+    "files": [
+      "static/chunks/841.3cd387fbd0bb3f3b.js"
+    ]
+  }
+}
