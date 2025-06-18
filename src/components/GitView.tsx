@@ -648,7 +648,7 @@ export default function GitView() {
                     {needsPull && (
                       <div className="mt-2">
                         <p className="text-xs text-red-600 mb-2">
-                          The remote repository has changes that you don't have locally. You need to pull first.
+                          The remote repository has changes that you don&apos;t have locally. You need to pull first.
                         </p>
                         <button
                           onClick={handlePullAndPush}

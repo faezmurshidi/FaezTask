@@ -19,7 +19,7 @@ export async function getProjects(): Promise<Project[]> {
   try {
     if (electronAPI.isElectron()) {
       const projects = await electronAPI.getProjects();
-      return projects.map(p => ({
+      return projects.map((p: any) => ({
         ...p,
         created_at: new Date(p.created_at),
         updated_at: new Date(p.updated_at),

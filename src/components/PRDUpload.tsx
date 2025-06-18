@@ -383,7 +383,7 @@ export default function PRDUpload({ onClose, onUpload, onAddExisting }: PRDUploa
           </div>
 
           <div className="space-y-4">
-            <p className="text-gray-600 mb-6">Choose how you'd like to add your project:</p>
+            <p className="text-gray-600 mb-6">Choose how you&apos;d like to add your project:</p>
             
             <button
               onClick={() => setProjectType('new')}

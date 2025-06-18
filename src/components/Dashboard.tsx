@@ -45,11 +45,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   className = '', 
   projectPath = '/Users/faez/Documents/FaezPM' 
 }) => {
-  // Git Activity widget that uses the project path
-  const GitActivity = () => (
-    <GitActivityWidget projectPath={projectPath} />
-  );
-
   // Default layout configuration for dashboard widgets
   const defaultLayouts = {
     lg: [
@@ -96,8 +91,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     'today-tasks': <TodaysTasks />,
     'time-tracking': <ActiveTimeTracking />,
     'progress-summary': <DailyProgressSummary />,
-    'git-activity': <GitActivity />,
-  }), []);
+    'git-activity': <GitActivityWidget projectPath={projectPath} />,
+  }), [projectPath]);
 
   return (
     <div className={`flex-1 flex flex-col overflow-hidden bg-gray-50 ${className}`}>

@@ -357,7 +357,7 @@ export default function GitCommitAnalysis({ projectPath }: GitCommitAnalysisProp
           <div className="text-center py-4">
             <p className="text-sm text-gray-500">No task correlations found in recent commits</p>
             <p className="text-xs text-gray-400 mt-1">
-              Try including task IDs (e.g., "Fix task 27.6") in commit messages
+              Try including task IDs (e.g., &quot;Fix task 27.6&quot;) in commit messages
             </p>
           </div>
         ) : null}
