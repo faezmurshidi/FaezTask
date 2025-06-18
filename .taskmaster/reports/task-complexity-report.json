@@ -1,0 +1,289 @@
+{
+	"meta": {
+		"generatedAt": "2025-06-18T03:16:11.907Z",
+		"tasksAnalyzed": 23,
+		"totalTasks": 27,
+		"analysisCount": 37,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Setup Electron and Next.js Project Structure",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down the setup of Electron and Next.js project structure into subtasks such as initializing Next.js, installing Electron, integrating electron-next, configuring main and renderer processes, setting up build scripts, and verifying the development launch.",
+			"reasoning": "This task involves multiple setup steps across two frameworks, including configuration and integration, but follows established guides and conventions, making it moderately complex.[1][3][5]"
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Develop Project Management Module",
+			"complexityScore": 8,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Decompose the project management module into subtasks: set up navigation, implement TabContext, build ProjectList, ProjectTab, and ProjectDetails components, integrate SWR for data fetching, connect CRUD operations to Supabase, and write unit/integration tests.",
+			"reasoning": "This module requires advanced UI/UX, state management, data fetching, and integration with backend services, making it a complex and central feature."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Implement PRD Upload and Processing",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Break down PRD upload and processing into subtasks: implement file upload UI, handle file reading, connect to Task Master API, parse responses, store tasks in Supabase, integrate GPT-4 for refinement, and test the workflow.",
+			"reasoning": "This task involves file handling, API integration, data parsing, and optional AI processing, each with their own edge cases and error handling."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Develop Task Management Interface",
+			"complexityScore": 8,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Expand the task management interface into subtasks: implement Kanban board, build TaskBoard, TaskColumn, and TaskCard components, create TaskDetailPanel, integrate drag-and-drop, connect to Supabase for real-time updates, and test all features.",
+			"reasoning": "Building a real-time, interactive Kanban board with drag-and-drop and live updates is UI-intensive and requires careful state and data management."
+		},
+		{
+			"method": "Hierarchical Task Analysis (HTA)",
+			"description": "Breaks down tasks into a hierarchy of goals, sub-goals, operations, and plans, providing a structured view of task components and their relationships.",
+			"use_case": "Useful for understanding complex tasks by decomposing them into manageable parts, facilitating efficient planning and scheduling.",
+			"reference": "([vaia.com](https://www.vaia.com/en-us/explanations/engineering/design-engineering/task-analysis/?utm_source=openai))"
+		},
+		{
+			"method": "Cognitive Task Analysis (CTA)",
+			"description": "Focuses on the mental processes involved in task performance, such as decision-making, problem-solving, and memory recall, to understand cognitive demands.",
+			"use_case": "Beneficial for tasks requiring critical thinking or complex decision-making, aiding in designing systems that support user cognition.",
+			"reference": "([vaia.com](https://www.vaia.com/en-us/explanations/engineering/design-engineering/task-analysis/?utm_source=openai))"
+		},
+		{
+			"method": "Work Breakdown Structure (WBS)",
+			"description": "Creates a deliverable-oriented decomposition of a project into smaller components, organizing work into manageable sections.",
+			"use_case": "Effective for project management by breaking down complex projects into structured tasks, enhancing clarity and control.",
+			"reference": "([fastercapital.com](https://fastercapital.com/content/Task-Management--Task-Analysis--Breaking-Down-Complexities-in-Task-Management.html?utm_source=openai))"
+		},
+		{
+			"method": "Goals, Operators, Methods, and Selection Rules (GOMS) Model",
+			"description": "Analyzes tasks by identifying goals, the operators used to achieve them, methods for combining operators, and rules for selecting among methods.",
+			"use_case": "Useful for evaluating user interface design and human-computer interaction by modeling user behavior.",
+			"reference": "([hfmethods.weebly.com](https://hfmethods.weebly.com/task-analysis-methods.html?utm_source=openai))"
+		},
+		{
+			"method": "Cyclomatic Complexity",
+			"description": "Measures the number of linearly independent paths through a program's source code, indicating its complexity.",
+			"use_case": "Applied in software development to assess code complexity, aiding in testing and maintenance efforts.",
+			"reference": "([en.wikipedia.org](https://en.wikipedia.org/wiki/Cyclomatic_complexity?utm_source=openai))"
+		},
+		{
+			"method": "Probabilistic Analysis of Algorithms",
+			"description": "Estimates the computational complexity of an algorithm by assuming a probabilistic distribution of all possible inputs.",
+			"use_case": "Used to design efficient algorithms or derive complexity of known algorithms under average-case scenarios.",
+			"reference": "([en.wikipedia.org](https://en.wikipedia.org/wiki/Probabilistic_analysis_of_algorithms?utm_source=openai))"
+		},
+		{
+			"method": "Divide and Conquer",
+			"description": "Decomposes complex problems recursively into smaller sub-problems, solving each independently before combining solutions.",
+			"use_case": "Commonly used in algorithms for searching and sorting, enhancing efficiency by breaking down tasks.",
+			"reference": "([en.wikipedia.org](https://en.wikipedia.org/wiki/Algorithmic_technique?utm_source=openai))"
+		},
+		{
+			"method": "Dynamic Programming",
+			"description": "Solves complex problems by breaking them down into simpler subproblems, storing the results to avoid redundant computations.",
+			"use_case": "Effective for optimization problems where subproblems overlap, improving computational efficiency.",
+			"reference": "([en.wikipedia.org](https://en.wikipedia.org/wiki/Algorithmic_technique?utm_source=openai))"
+		},
+		{
+			"method": "Backtracking",
+			"description": "Solves problems recursively by trying to build a solution incrementally, removing solutions that fail to satisfy constraints.",
+			"use_case": "Utilized in scenarios like puzzle solving and combinatorial problems where all possibilities are explored.",
+			"reference": "([en.wikipedia.org](https://en.wikipedia.org/wiki/Algorithmic_technique?utm_source=openai))"
+		},
+		{
+			"method": "Sliding Window",
+			"description": "Reduces the use of nested loops by maintaining a subset of data in a 'window' and moving it through the dataset.",
+			"use_case": "Applied in scenarios requiring efficient data processing over a sequence, such as in string or array problems.",
+			"reference": "([en.wikipedia.org](https://en.wikipedia.org/wiki/Algorithmic_technique?utm_source=openai))"
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Implement Supabase Integration",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement supabase integration.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Implement Time Tracking Feature",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement time tracking feature.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Develop AI Chat Interface",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on develop ai chat interface.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Implement Document Indexing and Search",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement document indexing and search.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Develop Calendar and Scheduling Module",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on develop calendar and scheduling module.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Implement Git Integration",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement git integration.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Develop Knowledge Base View",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on develop knowledge base view.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Implement Offline Capability",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement offline capability.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 13,
+			"taskTitle": "Develop Dashboard View",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on develop dashboard view.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 14,
+			"taskTitle": "Implement Mem0 Integration for AI Memory",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement mem0 integration for ai memory.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 15,
+			"taskTitle": "Develop Timesheet Export Functionality",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on develop timesheet export functionality.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 16,
+			"taskTitle": "Implement Task Master File Compatibility",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement task master file compatibility.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 17,
+			"taskTitle": "Develop RAG Capabilities for AI Assistant",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on develop rag capabilities for ai assistant.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 18,
+			"taskTitle": "Implement Secure Storage for API Keys",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement secure storage for api keys.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 19,
+			"taskTitle": "Develop Automatic Project Folder Creation",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on develop automatic project folder creation.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 20,
+			"taskTitle": "Implement Performance Optimization",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement performance optimization.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 21,
+			"taskTitle": "Develop Error Handling and Logging System",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on develop error handling and logging system.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 22,
+			"taskTitle": "Implement Data Backup and Restore Functionality",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement data backup and restore functionality.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 23,
+			"taskTitle": "Develop User Settings and Preferences Module",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on develop user settings and preferences module.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 24,
+			"taskTitle": "Implement Application Update Mechanism",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement application update mechanism.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 25,
+			"taskTitle": "Conduct Comprehensive Testing and Bug Fixing",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on conduct comprehensive testing and bug fixing.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 26,
+			"taskTitle": "Implement Integrated Terminal Component",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement integrated terminal component.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": 27,
+			"taskTitle": "Implement Git Integration Feature",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement git integration feature.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		}
+	]
+}

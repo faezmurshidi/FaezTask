@@ -1,0 +1,59 @@
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  prd_file_path?: string;
+  local_folder_path?: string;
+  github_repo_url?: string;
+  status: 'active' | 'paused' | 'completed';
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface GitStatus {
+  isGitRepo: boolean;
+  hasRemote: boolean;
+  currentBranch?: string;
+  uncommittedChanges: number;
+  unpushedCommits: number;
+  lastCommitHash?: string;
+  lastCommitMessage?: string;
+  hasConflicts: boolean;
+  isDirty: boolean;
+}
+
+export interface Task {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string;
+  status: 'todo' | 'in_progress' | 'completed';
+  priority: 'low' | 'medium' | 'high';
+  estimated_hours?: number;
+  actual_hours?: number;
+  due_date?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface TimeEntry {
+  id: string;
+  task_id: string;
+  project_id: string;
+  start_time: Date;
+  end_time?: Date;
+  duration_minutes: number;
+  description?: string;
+  entry_type: 'manual' | 'pomodoro';
+}
+
+export interface Document {
+  id: string;
+  project_id: string;
+  file_path: string;
+  title: string;
+  content: string;
+  document_type: 'readme' | 'spec' | 'notes' | 'other';
+  last_indexed: Date;
+  created_at: Date;
+}
