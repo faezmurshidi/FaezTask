@@ -789,7 +789,6 @@
           }
         ]
       },
-
       {
         "id": 11,
         "title": "Develop Knowledge Base View",
@@ -2269,8 +2268,8 @@
             "dependencies": [
               6
             ],
-            "details": "Design a strategy (e.g., regex for task IDs in commit messages) to link commits to tasks in the project management system. Enable automatic progress updates based on commit activity.",
-            "status": "pending",
+            "details": "Design a strategy (e.g., regex for task IDs in commit messages) to link commits to tasks in the project management system. Enable automatic progress updates based on commit activity.\n<info added on 2025-06-18T06:35:10.016Z>\nImplemented commit-task correlation functionality with regex-based task detection, TypeScript interfaces, TaskCorrelationServiceImpl, integrated UI in GitCommitAnalysis component with confidence scores, and mock AI analysis placeholder. Ready for testing.\n</info added on 2025-06-18T06:35:10.016Z>",
+            "status": "done",
             "testStrategy": "Test task correlation with various commit message formats and verify that progress tracking accurately reflects development work."
           },
           {
@@ -2336,7 +2335,7 @@
     ],
     "metadata": {
       "created": "2025-06-16T07:44:34.741Z",
-      "updated": "2025-06-18T04:05:05.745Z",
+      "updated": "2025-06-18T06:35:15.401Z",
       "description": "Tasks for master context"
     }
   }

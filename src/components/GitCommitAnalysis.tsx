@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CommitAnalysis } from '@/types';
+import { CommitAnalysis, CommitTaskCorrelation } from '@/types';
 import { electronAPI } from '@/lib/electronAPI';
+import { taskCorrelationService } from '@/lib/taskCorrelationService';
 
 interface GitCommitAnalysisProps {
   projectPath: string;
@@ -10,7 +11,9 @@ interface GitCommitAnalysisProps {
 
 export default function GitCommitAnalysis({ projectPath }: GitCommitAnalysisProps) {
   const [analysis, setAnalysis] = useState<CommitAnalysis | null>(null);
+  const [correlations, setCorrelations] = useState<CommitTaskCorrelation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [correlationLoading, setCorrelationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [options, setOptions] = useState({
     maxCount: 100,
@@ -35,6 +38,8 @@ export default function GitCommitAnalysis({ projectPath }: GitCommitAnalysisProp
       
       if (result.success) {
         setAnalysis(result.analysis);
+        // After loading analysis, correlate commits with tasks
+        await analyzeCommitTaskCorrelations(result.analysis);
       } else {
         setError(result.error || 'Failed to analyze commits');
       }
@@ -43,6 +48,49 @@ export default function GitCommitAnalysis({ projectPath }: GitCommitAnalysisProp
       setError('Failed to analyze commits');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const analyzeCommitTaskCorrelations = async (analysisData: CommitAnalysis) => {
+    setCorrelationLoading(true);
+    try {
+      // Get recent commits for correlation analysis
+      const logResult = await electronAPI.gitGetLog(projectPath, { maxCount: 20 });
+      
+      if (logResult.success && logResult.log?.all) {
+        const correlationPromises = logResult.log.all.map(async (commit: any) => {
+          try {
+                         const correlation = await taskCorrelationService.analyzeCommitTaskCorrelation({
+               hash: commit.hash,
+               message: commit.message,
+               author: {
+                 name: commit.author_name,
+                 email: commit.author_email
+               },
+               date: new Date(commit.date),
+               filesChanged: [], // Would need to get from git show --name-only
+               insertions: 0,
+               deletions: 0,
+               taskReferences: []
+             });
+            return correlation;
+          } catch (error) {
+            console.error('Error correlating commit:', commit.hash, error);
+            return null;
+          }
+        });
+
+        const results = await Promise.all(correlationPromises);
+        const validCorrelations = results.filter((c): c is CommitTaskCorrelation => 
+          c !== null && c.taskId !== null && c.confidence > 0.3
+        );
+        
+        setCorrelations(validCorrelations);
+      }
+    } catch (error) {
+      console.error('Failed to analyze commit-task correlations:', error);
+    } finally {
+      setCorrelationLoading(false);
     }
   };
 
@@ -248,6 +296,72 @@ export default function GitCommitAnalysis({ projectPath }: GitCommitAnalysisProp
           </div>
         </div>
       )}
+
+      {/* Commit-Task Correlations */}
+      <div className="bg-white border rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-gray-800">Commit-Task Correlations</h4>
+          {correlationLoading && (
+            <div className="flex items-center space-x-1">
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+              <span className="text-xs text-gray-500">Analyzing...</span>
+            </div>
+          )}
+        </div>
+        
+        {correlations.length > 0 ? (
+          <div className="space-y-2">
+            {correlations.map((correlation, index) => (
+              <div key={index} className="bg-gray-50 p-3 rounded border-l-4 border-blue-400">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-blue-600">
+                      Task #{correlation.taskId}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      correlation.confidence > 0.7 ? 'bg-green-100 text-green-700' :
+                      correlation.confidence > 0.5 ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-orange-100 text-orange-700'
+                    }`}>
+                      {Math.round(correlation.confidence * 100)}% confidence
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      correlation.progressEstimate === 'completed' ? 'bg-green-100 text-green-700' :
+                      correlation.progressEstimate === 'in-progress' ? 'bg-blue-100 text-blue-700' :
+                      correlation.progressEstimate === 'started' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {correlation.progressEstimate}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500 font-mono">
+                    {correlation.commitHash.substring(0, 8)}
+                  </span>
+                </div>
+                
+                <p className="text-xs text-gray-600 mb-1">
+                  {correlation.reasoning}
+                </p>
+                
+                {correlation.suggestedAction && correlation.suggestedAction !== 'none' && (
+                  <div className="mt-2">
+                    <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                      Suggested: {correlation.suggestedAction.replace('-', ' ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : !correlationLoading ? (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-500">No task correlations found in recent commits</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Try including task IDs (e.g., "Fix task 27.6") in commit messages
+            </p>
+          </div>
+        ) : null}
+      </div>
 
       {/* Code Velocity Details */}
       <div className="bg-white border rounded-lg p-4">

@@ -100,3 +100,31 @@ export interface CommitAnalysis {
     totalLinesDeleted: number;
   };
 }
+
+export interface CommitTaskCorrelation {
+  commitHash: string;
+  taskId: string | null;
+  confidence: number; // 0-1 scale
+  method: 'regex' | 'semantic' | 'manual' | 'ai'; // How the correlation was determined
+  reasoning: string;
+  progressEstimate: 'started' | 'in-progress' | 'completed' | 'unknown';
+  suggestedAction?: 'update-status' | 'add-progress' | 'create-task' | 'none';
+  timestamp: string;
+}
+
+export interface TaskCorrelationService {
+  analyzeCommitTaskCorrelation: (
+    commit: CommitMetadata,
+    availableTasks?: any[],
+    options?: CorrelationOptions
+  ) => Promise<CommitTaskCorrelation>;
+  getTaskReferences: (commitMessage: string) => string[];
+  updateTaskProgress: (correlation: CommitTaskCorrelation) => Promise<boolean>;
+}
+
+export interface CorrelationOptions {
+  useAI?: boolean; // Future AI integration flag
+  confidenceThreshold?: number;
+  includeFileAnalysis?: boolean;
+  projectContext?: string;
+}
