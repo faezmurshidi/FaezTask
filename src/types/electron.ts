@@ -38,6 +38,7 @@ declare global {
       gitAddRemote: (repoPath: string, name: string, url: string) => Promise<any>;
       gitGetRemotes: (repoPath: string) => Promise<any>;
       gitGetLog: (repoPath: string, options?: any) => Promise<any>;
+      gitAnalyzeCommits: (repoPath: string, options?: any) => Promise<any>;
       
       // Simple PTY API - following proven pattern
       spawnPty: (options: { cols?: number; rows?: number }) => void;

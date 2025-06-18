@@ -111,6 +111,13 @@ export const electronAPI = {
     throw new Error('Git operations are only available in Electron');
   },
 
+  gitAnalyzeCommits: async (repoPath: string, options?: any) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.gitAnalyzeCommits(repoPath, options);
+    }
+    throw new Error('Git operations are only available in Electron');
+  },
+
   // Project operations - these are now properly available in the current preload
   getProjects: async () => {
     if (electronAPI.isElectron()) {

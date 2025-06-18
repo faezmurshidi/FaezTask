@@ -57,3 +57,46 @@ export interface Document {
   last_indexed: Date;
   created_at: Date;
 }
+
+// Commit Analysis Types
+export interface CommitMetadata {
+  hash: string;
+  message: string;
+  author: {
+    name: string;
+    email: string;
+  };
+  date: Date;
+  filesChanged: string[];
+  insertions: number;
+  deletions: number;
+  taskReferences: string[];
+}
+
+export interface AuthorStats {
+  name: string;
+  email: string;
+  commitCount: number;
+  linesAdded: number;
+  linesDeleted: number;
+  firstCommit: Date;
+  lastCommit: Date;
+}
+
+export interface CommitAnalysis {
+  totalCommits: number;
+  dateRange: {
+    from: Date;
+    to: Date;
+  };
+  authors: AuthorStats[];
+  commitFrequency: { [date: string]: number };
+  fileChangePatterns: { [file: string]: number };
+  taskReferences: { [taskId: string]: CommitMetadata[] };
+  codeVelocity: {
+    avgCommitsPerDay: number;
+    avgLinesChanged: number;
+    totalLinesAdded: number;
+    totalLinesDeleted: number;
+  };
+}

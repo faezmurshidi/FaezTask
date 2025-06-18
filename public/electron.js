@@ -423,6 +423,262 @@ ipcMain.handle('git-get-log', async (event, repoPath, options = {}) => {
   }
 });
 
+// Commit analysis using simple-git directly (since GitService is TypeScript)
+ipcMain.handle('git-analyze-commits', async (event, repoPath, options = {}) => {
+  try {
+    // Create a simplified version of commit analysis directly in electron.js
+    const git = simpleGit(repoPath);
+    
+    // Check if it's a git repository
+    let isRepo = true;
+    try {
+      await git.status();
+    } catch (error) {
+      isRepo = false;
+    }
+    
+    if (!isRepo) {
+      // Return empty analysis for non-git repos
+      const now = new Date();
+      return {
+        success: true,
+        analysis: {
+          totalCommits: 0,
+          dateRange: { from: now, to: now },
+          authors: [],
+          commitFrequency: {},
+          fileChangePatterns: {},
+          taskReferences: {},
+          codeVelocity: {
+            avgCommitsPerDay: 0,
+            avgLinesChanged: 0,
+            totalLinesAdded: 0,
+            totalLinesDeleted: 0
+          }
+        }
+      };
+    }
+
+    const logOptions = {
+      maxCount: options.maxCount || 100,
+      format: {
+        hash: '%H',
+        date: '%ai',
+        message: '%s',
+        author_name: '%an',
+        author_email: '%ae',
+      }
+    };
+
+    if (options.since) logOptions.since = options.since;
+    if (options.until) logOptions.until = options.until;
+    if (options.author) logOptions.author = options.author;
+
+    const log = await git.log(logOptions);
+    
+    if (log.all.length === 0) {
+      const now = new Date();
+      return {
+        success: true,
+        analysis: {
+          totalCommits: 0,
+          dateRange: { from: now, to: now },
+          authors: [],
+          commitFrequency: {},
+          fileChangePatterns: {},
+          taskReferences: {},
+          codeVelocity: {
+            avgCommitsPerDay: 0,
+            avgLinesChanged: 0,
+            totalLinesAdded: 0,
+            totalLinesDeleted: 0
+          }
+        }
+      };
+    }
+
+    const commits = [];
+    
+    // Process each commit to get detailed information
+    for (const commit of log.all) {
+      try {
+        // Get file stats for this commit using --numstat
+        const statsResult = await git.show([
+          '--numstat',
+          '--format=',
+          commit.hash
+        ]);
+
+        const lines = statsResult.split('\n').filter(line => line.trim());
+        const filesChanged = [];
+        let totalInsertions = 0;
+        let totalDeletions = 0;
+
+        for (const line of lines) {
+          const parts = line.split('\t');
+          if (parts.length >= 3) {
+            const additions = parseInt(parts[0]) || 0;
+            const deletions = parseInt(parts[1]) || 0;
+            const filename = parts[2];
+            
+            if (!isNaN(additions)) totalInsertions += additions;
+            if (!isNaN(deletions)) totalDeletions += deletions;
+            filesChanged.push(filename);
+          }
+        }
+
+        // Extract task references from commit message
+        const taskReferences = [];
+        const patterns = [
+          /(?:task|fix|close|resolve|ref|refs|references)[s]?\s*[#:]?\s*(\d+(?:\.\d+)?)/gi,
+          /#(\d+(?:\.\d+)?)/g,
+          /\b(\d+\.\d+)\b/g, // Subtask references like "27.6"
+          /task[s]?\s*(\d+)/gi,
+        ];
+        
+        const referencesSet = new Set();
+        
+        patterns.forEach(pattern => {
+          const matches = commit.message.matchAll(pattern);
+          for (const match of matches) {
+            if (match[1]) {
+              referencesSet.add(match[1]);
+            }
+          }
+        });
+        
+        commits.push({
+          hash: commit.hash,
+          message: commit.message,
+          author: {
+            name: commit.author_name,
+            email: commit.author_email
+          },
+          date: new Date(commit.date),
+          filesChanged,
+          insertions: totalInsertions,
+          deletions: totalDeletions,
+          taskReferences: Array.from(referencesSet)
+        });
+      } catch (error) {
+        console.warn(`Failed to get stats for commit ${commit.hash}:`, error);
+        // Add commit with basic info even if stats fail
+        commits.push({
+          hash: commit.hash,
+          message: commit.message,
+          author: {
+            name: commit.author_name,
+            email: commit.author_email
+          },
+          date: new Date(commit.date),
+          filesChanged: [],
+          insertions: 0,
+          deletions: 0,
+          taskReferences: []
+        });
+      }
+    }
+    
+    // Generate analysis
+    const dates = commits.map(c => c.date);
+    const dateRange = {
+      from: new Date(Math.min(...dates.map(d => d.getTime()))),
+      to: new Date(Math.max(...dates.map(d => d.getTime())))
+    };
+
+    // Analyze authors
+    const authorMap = new Map();
+    commits.forEach(commit => {
+      const key = `${commit.author.name}<${commit.author.email}>`;
+      
+      if (!authorMap.has(key)) {
+        authorMap.set(key, {
+          name: commit.author.name,
+          email: commit.author.email,
+          commitCount: 0,
+          linesAdded: 0,
+          linesDeleted: 0,
+          firstCommit: commit.date,
+          lastCommit: commit.date
+        });
+      }
+
+      const stats = authorMap.get(key);
+      stats.commitCount++;
+      stats.linesAdded += commit.insertions;
+      stats.linesDeleted += commit.deletions;
+      
+      if (commit.date < stats.firstCommit) {
+        stats.firstCommit = commit.date;
+      }
+      if (commit.date > stats.lastCommit) {
+        stats.lastCommit = commit.date;
+      }
+    });
+
+    const authors = Array.from(authorMap.values()).sort((a, b) => b.commitCount - a.commitCount);
+
+    // Calculate commit frequency
+    const commitFrequency = {};
+    commits.forEach(commit => {
+      const dateKey = commit.date.toISOString().split('T')[0];
+      commitFrequency[dateKey] = (commitFrequency[dateKey] || 0) + 1;
+    });
+
+    // Analyze file changes
+    const filePatterns = {};
+    commits.forEach(commit => {
+      commit.filesChanged.forEach(file => {
+        filePatterns[file] = (filePatterns[file] || 0) + 1;
+      });
+    });
+
+    // Sort and limit file patterns to top 50
+    const sortedFiles = Object.entries(filePatterns)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 50);
+    const fileChangePatterns = Object.fromEntries(sortedFiles);
+
+    // Group by task references
+    const taskReferences = {};
+    commits.forEach(commit => {
+      commit.taskReferences.forEach(taskId => {
+        if (!taskReferences[taskId]) {
+          taskReferences[taskId] = [];
+        }
+        taskReferences[taskId].push(commit);
+      });
+    });
+
+    // Calculate velocity
+    const totalLinesAdded = commits.reduce((sum, c) => sum + c.insertions, 0);
+    const totalLinesDeleted = commits.reduce((sum, c) => sum + c.deletions, 0);
+    const daysDiff = Math.max(1, Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    const codeVelocity = {
+      avgCommitsPerDay: commits.length / daysDiff,
+      avgLinesChanged: (totalLinesAdded + totalLinesDeleted) / Math.max(1, commits.length),
+      totalLinesAdded,
+      totalLinesDeleted
+    };
+
+    const analysis = {
+      totalCommits: commits.length,
+      dateRange,
+      authors,
+      commitFrequency,
+      fileChangePatterns,
+      taskReferences,
+      codeVelocity
+    };
+
+    return { success: true, analysis };
+  } catch (error) {
+    console.error('Error analyzing commits:', error);
+    return { success: false, error: error.message, analysis: null };
+  }
+});
+
 // PRD Processing handlers
 ipcMain.handle('process-prd-upload', async (event, { fileContent, fileName, projectName, baseProjectsPath }) => {
   try {

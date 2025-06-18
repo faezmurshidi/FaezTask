@@ -1,5 +1,5 @@
 import { simpleGit, SimpleGit, StatusResult, LogResult } from 'simple-git';
-import { GitStatus } from '@/types';
+import { GitStatus, CommitAnalysis, CommitMetadata, AuthorStats } from '@/types';
 
 export class GitService {
   private git: SimpleGit;
@@ -303,5 +303,326 @@ export class GitService {
     } catch (error) {
       return false;
     }
+  }
+
+  /**
+   * Analyze commit history and extract comprehensive metadata
+   */
+  async analyzeCommits(options: {
+    maxCount?: number;
+    since?: string;
+    until?: string;
+    author?: string;
+  } = {}): Promise<CommitAnalysis> {
+    try {
+      const logOptions: any = {
+        maxCount: options.maxCount || 100,
+        format: {
+          hash: '%H',
+          date: '%ai',
+          message: '%s',
+          author_name: '%an',
+          author_email: '%ae',
+        }
+      };
+
+      if (options.since) logOptions.since = options.since;
+      if (options.until) logOptions.until = options.until;
+      if (options.author) logOptions.author = options.author;
+
+      const log = await this.git.log(logOptions);
+      
+      if (log.all.length === 0) {
+        return this.createEmptyAnalysis();
+      }
+
+      const commits: CommitMetadata[] = [];
+      
+      // Process each commit to get detailed information
+      for (const commit of log.all) {
+        try {
+          // Get file stats for this commit
+          const stats = await this.getCommitStats(commit.hash);
+          
+          commits.push({
+            hash: commit.hash,
+            message: commit.message,
+            author: {
+              name: commit.author_name,
+              email: commit.author_email
+            },
+            date: new Date(commit.date),
+            filesChanged: stats.filesChanged,
+            insertions: stats.insertions,
+            deletions: stats.deletions,
+            taskReferences: this.extractTaskReferences(commit.message)
+          });
+        } catch (error) {
+          console.warn(`Failed to get stats for commit ${commit.hash}:`, error);
+          // Add commit with basic info even if stats fail
+          commits.push({
+            hash: commit.hash,
+            message: commit.message,
+            author: {
+              name: commit.author_name,
+              email: commit.author_email
+            },
+            date: new Date(commit.date),
+            filesChanged: [],
+            insertions: 0,
+            deletions: 0,
+            taskReferences: this.extractTaskReferences(commit.message)
+          });
+        }
+      }
+      
+      return this.generateAnalysis(commits);
+    } catch (error) {
+      console.error('Error analyzing commits:', error);
+      return this.createEmptyAnalysis();
+    }
+  }
+
+  /**
+   * Get detailed statistics for a specific commit
+   */
+  private async getCommitStats(hash: string): Promise<{
+    filesChanged: string[];
+    insertions: number;
+    deletions: number;
+  }> {
+    try {
+      // Get commit stats using --numstat which gives us file-by-file statistics
+      const result = await this.git.show([
+        '--numstat',
+        '--format=',
+        hash
+      ]);
+
+      const lines = result.split('\n').filter(line => line.trim());
+      const filesChanged: string[] = [];
+      let totalInsertions = 0;
+      let totalDeletions = 0;
+
+      for (const line of lines) {
+        const parts = line.split('\t');
+        if (parts.length >= 3) {
+          const additions = parseInt(parts[0]) || 0;
+          const deletions = parseInt(parts[1]) || 0;
+          const filename = parts[2];
+          
+          if (!isNaN(additions)) totalInsertions += additions;
+          if (!isNaN(deletions)) totalDeletions += deletions;
+          filesChanged.push(filename);
+        }
+      }
+
+      return {
+        filesChanged,
+        insertions: totalInsertions,
+        deletions: totalDeletions
+      };
+    } catch (error) {
+      return {
+        filesChanged: [],
+        insertions: 0,
+        deletions: 0
+      };
+    }
+  }
+
+  /**
+   * Extract task references from commit messages
+   */
+  private extractTaskReferences(message: string): string[] {
+    const patterns = [
+      /(?:task|fix|close|resolve|ref|refs|references)[s]?\s*[#:]?\s*(\d+(?:\.\d+)?)/gi,
+      /#(\d+(?:\.\d+)?)/g,
+      /\b(\d+\.\d+)\b/g, // Subtask references like "27.6"
+      /task[s]?\s*(\d+)/gi,
+    ];
+    
+    const references = new Set<string>();
+    
+    patterns.forEach(pattern => {
+      const matches = message.matchAll(pattern);
+      for (const match of matches) {
+        if (match[1]) {
+          references.add(match[1]);
+        }
+      }
+    });
+    
+    return Array.from(references);
+  }
+
+  /**
+   * Generate comprehensive analysis from commit metadata
+   */
+  private generateAnalysis(commits: CommitMetadata[]): CommitAnalysis {
+    const dateRange = this.calculateDateRange(commits);
+    const authors = this.analyzeAuthors(commits);
+    const commitFrequency = this.calculateCommitFrequency(commits);
+    const fileChangePatterns = this.analyzeFileChanges(commits);
+    const taskReferences = this.groupByTaskReferences(commits);
+    const codeVelocity = this.calculateVelocity(commits, dateRange);
+
+    return {
+      totalCommits: commits.length,
+      dateRange,
+      authors,
+      commitFrequency,
+      fileChangePatterns,
+      taskReferences,
+      codeVelocity
+    };
+  }
+
+  /**
+   * Calculate the date range of commits
+   */
+  private calculateDateRange(commits: CommitMetadata[]): { from: Date; to: Date } {
+    if (commits.length === 0) {
+      const now = new Date();
+      return { from: now, to: now };
+    }
+
+    const dates = commits.map(c => c.date);
+    return {
+      from: new Date(Math.min(...dates.map(d => d.getTime()))),
+      to: new Date(Math.max(...dates.map(d => d.getTime())))
+    };
+  }
+
+  /**
+   * Analyze author statistics
+   */
+  private analyzeAuthors(commits: CommitMetadata[]): AuthorStats[] {
+    const authorMap = new Map<string, AuthorStats>();
+
+    commits.forEach(commit => {
+      const key = `${commit.author.name}<${commit.author.email}>`;
+      
+      if (!authorMap.has(key)) {
+        authorMap.set(key, {
+          name: commit.author.name,
+          email: commit.author.email,
+          commitCount: 0,
+          linesAdded: 0,
+          linesDeleted: 0,
+          firstCommit: commit.date,
+          lastCommit: commit.date
+        });
+      }
+
+      const stats = authorMap.get(key)!;
+      stats.commitCount++;
+      stats.linesAdded += commit.insertions;
+      stats.linesDeleted += commit.deletions;
+      
+      if (commit.date < stats.firstCommit) {
+        stats.firstCommit = commit.date;
+      }
+      if (commit.date > stats.lastCommit) {
+        stats.lastCommit = commit.date;
+      }
+    });
+
+    return Array.from(authorMap.values()).sort((a, b) => b.commitCount - a.commitCount);
+  }
+
+  /**
+   * Calculate commit frequency by date
+   */
+  private calculateCommitFrequency(commits: CommitMetadata[]): { [date: string]: number } {
+    const frequency: { [date: string]: number } = {};
+
+    commits.forEach(commit => {
+      const dateKey = commit.date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      frequency[dateKey] = (frequency[dateKey] || 0) + 1;
+    });
+
+    return frequency;
+  }
+
+  /**
+   * Analyze file change patterns
+   */
+  private analyzeFileChanges(commits: CommitMetadata[]): { [file: string]: number } {
+    const patterns: { [file: string]: number } = {};
+
+    commits.forEach(commit => {
+      commit.filesChanged.forEach(file => {
+        patterns[file] = (patterns[file] || 0) + 1;
+      });
+    });
+
+    // Sort by frequency and return top 50 files
+    const sorted = Object.entries(patterns)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 50);
+
+    return Object.fromEntries(sorted);
+  }
+
+  /**
+   * Group commits by task references
+   */
+  private groupByTaskReferences(commits: CommitMetadata[]): { [taskId: string]: CommitMetadata[] } {
+    const taskGroups: { [taskId: string]: CommitMetadata[] } = {};
+
+    commits.forEach(commit => {
+      commit.taskReferences.forEach(taskId => {
+        if (!taskGroups[taskId]) {
+          taskGroups[taskId] = [];
+        }
+        taskGroups[taskId].push(commit);
+      });
+    });
+
+    return taskGroups;
+  }
+
+  /**
+   * Calculate code velocity metrics
+   */
+  private calculateVelocity(commits: CommitMetadata[], dateRange: { from: Date; to: Date }): {
+    avgCommitsPerDay: number;
+    avgLinesChanged: number;
+    totalLinesAdded: number;
+    totalLinesDeleted: number;
+  } {
+    const totalLinesAdded = commits.reduce((sum, c) => sum + c.insertions, 0);
+    const totalLinesDeleted = commits.reduce((sum, c) => sum + c.deletions, 0);
+    
+    const daysDiff = Math.max(1, Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    return {
+      avgCommitsPerDay: commits.length / daysDiff,
+      avgLinesChanged: (totalLinesAdded + totalLinesDeleted) / Math.max(1, commits.length),
+      totalLinesAdded,
+      totalLinesDeleted
+    };
+  }
+
+  /**
+   * Create empty analysis for repositories with no commits
+   */
+  private createEmptyAnalysis(): CommitAnalysis {
+    const now = new Date();
+    return {
+      totalCommits: 0,
+      dateRange: { from: now, to: now },
+      authors: [],
+      commitFrequency: {},
+      fileChangePatterns: {},
+      taskReferences: {},
+      codeVelocity: {
+        avgCommitsPerDay: 0,
+        avgLinesChanged: 0,
+        totalLinesAdded: 0,
+        totalLinesDeleted: 0
+      }
+    };
   }
 } 

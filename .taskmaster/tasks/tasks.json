@@ -789,101 +789,7 @@
           }
         ]
       },
-      {
-        "id": 10,
-        "title": "Implement Git Integration",
-        "description": "Develop Git integration for progress tracking and automatic GitHub repository creation.",
-        "details": "Use simple-git (version 3.19.0) for Git operations. Implement a service to analyze commit messages and correlate with tasks. Use Octokit (version 2.0.14) for GitHub API integration. Create functionality to automatically set up GitHub repositories for new projects. Implement branch awareness to track work across feature branches.",
-        "testStrategy": "Test Git operations (clone, commit analysis) with sample repositories. Verify automatic GitHub repo creation. Test progress correlation between commits and specific tasks. Ensure branch switching is correctly tracked.",
-        "priority": "medium",
-        "dependencies": [
-          3,
-          6
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Set Up simple-git in Project",
-            "description": "Install and configure the simple-git library to enable programmatic Git operations within the project.",
-            "dependencies": [],
-            "details": "Add simple-git as a dependency, initialize it in the backend, and verify basic commands like status and log.",
-            "status": "pending"
-          },
-          {
-            "id": 2,
-            "title": "Implement Commit Analysis Logic",
-            "description": "Develop functionality to analyze commit history and extract relevant metadata (author, message, timestamp, etc.).",
-            "dependencies": [
-              1
-            ],
-            "details": "Use simple-git to fetch commit logs and parse them for structured analysis.",
-            "status": "pending"
-          },
-          {
-            "id": 3,
-            "title": "Correlate Commits with Project Tasks",
-            "description": "Map analyzed commits to specific project tasks using commit messages, task IDs, or other conventions.",
-            "dependencies": [
-              2
-            ],
-            "details": "Design a strategy (e.g., regex for task IDs in commit messages) to link commits to tasks in the project management system.",
-            "status": "pending"
-          },
-          {
-            "id": 4,
-            "title": "Integrate Octokit for GitHub API Access",
-            "description": "Set up Octokit to interact with the GitHub API for repository and branch management.",
-            "dependencies": [
-              1
-            ],
-            "details": "Install Octokit, authenticate with GitHub, and verify access by fetching user or repo data.",
-            "status": "pending"
-          },
-          {
-            "id": 5,
-            "title": "Automate Repository Creation via GitHub API",
-            "description": "Implement functionality to create new repositories on GitHub using Octokit.",
-            "dependencies": [
-              4
-            ],
-            "details": "Develop backend endpoints or scripts that use Octokit to automate repo creation with required settings.",
-            "status": "pending"
-          },
-          {
-            "id": 6,
-            "title": "Implement Branch Tracking and Management",
-            "description": "Enable creation and tracking of branches, ensuring local branches track their remote counterparts.",
-            "dependencies": [
-              1,
-              4
-            ],
-            "details": "Use simple-git and Octokit to create branches, set up tracking (e.g., using --track or branch -u), and verify tracking status.",
-            "status": "pending"
-          },
-          {
-            "id": 7,
-            "title": "Test All Git and GitHub Operations",
-            "description": "Develop and execute tests for all implemented Git and GitHub integration features.",
-            "dependencies": [
-              2,
-              3,
-              5,
-              6
-            ],
-            "details": "Write unit and integration tests to validate commit analysis, task correlation, repo creation, and branch tracking.",
-            "status": "pending"
-          },
-          {
-            "id": 8,
-            "title": "Document Integration Workflow and Usage",
-            "description": "Create comprehensive documentation for setup, usage, and troubleshooting of the Git integration features.",
-            "dependencies": [],
-            "details": "Prepare README and developer guides covering all implemented features and their APIs.",
-            "status": "pending"
-          }
-        ]
-      },
+
       {
         "id": 11,
         "title": "Develop Knowledge Base View",
@@ -2280,13 +2186,12 @@
       },
       {
         "id": 27,
-        "title": "Implement Git Integration Feature",
-        "description": "Add comprehensive git integration to the Electron project management app, including detection of git repositories, status display, and basic git operations.",
-        "details": "Utilize the simple-git library to implement git operations such as init, commit, push, and pull within the Electron app. Use Electron IPC to communicate between the renderer and main process for executing git commands. Implement a GUI that displays git status indicators on project cards and provides a 'Connect Git' button for repository initialization. Track file status changes and update the UI accordingly. Ensure the integration is seamless and intuitive for users, providing clear feedback on git operations. Consider security implications of executing shell commands and ensure proper error handling and user notifications for failed operations.\n<info added on 2025-06-18T03:29:33.895Z>\nCompleted: simple-git library integration, IPC communication setup, and comprehensive UI components (GitStatusBadge and GitPanel). The foundation is solid with full git operations support including init, commit, push, pull, and remote management. Ready for testing and refinement.\n</info added on 2025-06-18T03:29:33.895Z>\n<info added on 2025-06-18T03:52:12.348Z>\nGit integration completed with the addition of a comprehensive Git tab. This includes displaying file changes, branch information, a commit interface, and support for all git operations.\n</info added on 2025-06-18T03:52:12.348Z>",
-        "testStrategy": "Verify that the application correctly detects existing git repositories and displays their status. Test the functionality of the 'Connect Git' button to initialize new repositories. Execute git operations (init, commit, push, pull) through the GUI and confirm they are performed correctly by checking the repository state. Test file status tracking and ensure the UI reflects changes accurately. Conduct user testing to ensure the integration is intuitive and provides clear feedback. Validate error handling by simulating common git errors and observing the application's response.",
+        "title": "Implement Comprehensive Git Integration",
+        "description": "Add comprehensive git integration to the Electron project management app, including detection of git repositories, status display, basic git operations, GitHub API integration, and commit analysis for progress tracking.",
+        "details": "Utilize the simple-git library to implement git operations such as init, commit, push, and pull within the Electron app. Use Electron IPC to communicate between the renderer and main process for executing git commands. Implement a GUI that displays git status indicators on project cards and provides a 'Connect Git' button for repository initialization. Track file status changes and update the UI accordingly. Additionally, implement advanced features like commit analysis to correlate with tasks, GitHub API integration using Octokit for automatic repository creation, and branch tracking for comprehensive project progress monitoring. Ensure the integration is seamless and intuitive for users, providing clear feedback on git operations. Consider security implications of executing shell commands and ensure proper error handling and user notifications for failed operations.\n<info added on 2025-06-18T03:29:33.895Z>\nCompleted: simple-git library integration, IPC communication setup, and comprehensive UI components (GitStatusBadge and GitPanel). The foundation is solid with full git operations support including init, commit, push, pull, and remote management. Ready for testing and refinement.\n</info added on 2025-06-18T03:29:33.895Z>\n<info added on 2025-06-18T03:52:12.348Z>\nGit integration completed with the addition of a comprehensive Git tab. This includes displaying file changes, branch information, a commit interface, and support for all git operations.\n</info added on 2025-06-18T03:52:12.348Z>",
+        "testStrategy": "Verify that the application correctly detects existing git repositories and displays their status. Test the functionality of the 'Connect Git' button to initialize new repositories. Execute git operations (init, commit, push, pull) through the GUI and confirm they are performed correctly by checking the repository state. Test file status tracking and ensure the UI reflects changes accurately. Test Git operations (clone, commit analysis) with sample repositories. Verify automatic GitHub repo creation. Test progress correlation between commits and specific tasks. Ensure branch switching is correctly tracked. Conduct user testing to ensure the integration is intuitive and provides clear feedback. Validate error handling by simulating common git errors and observing the application's response.",
         "status": "in-progress",
         "dependencies": [
-          10,
           26
         ],
         "priority": "high",
@@ -2345,6 +2250,86 @@
             "details": "Review and secure all instances where shell commands are executed to prevent potential vulnerabilities. Implement comprehensive error handling to manage failures gracefully and provide clear user notifications.",
             "status": "done",
             "testStrategy": "Develop security tests to identify and mitigate potential vulnerabilities in shell command execution. Test error handling mechanisms to ensure they provide appropriate feedback to users."
+          },
+          {
+            "id": 6,
+            "title": "Implement Commit Analysis Logic",
+            "description": "Develop functionality to analyze commit history and extract relevant metadata (author, message, timestamp, etc.) for progress tracking.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use simple-git to fetch commit logs and parse them for structured analysis. Extract commit patterns and metadata to provide insights into development progress and activity.",
+            "status": "done",
+            "testStrategy": "Test commit analysis with various repository histories and verify that metadata extraction is accurate and comprehensive."
+          },
+          {
+            "id": 7,
+            "title": "Correlate Commits with Project Tasks",
+            "description": "Map analyzed commits to specific project tasks using commit messages, task IDs, or other conventions to track progress automatically.",
+            "dependencies": [
+              6
+            ],
+            "details": "Design a strategy (e.g., regex for task IDs in commit messages) to link commits to tasks in the project management system. Enable automatic progress updates based on commit activity.",
+            "status": "pending",
+            "testStrategy": "Test task correlation with various commit message formats and verify that progress tracking accurately reflects development work."
+          },
+          {
+            "id": 8,
+            "title": "Integrate GitHub CLI for Repository Management",
+            "description": "Set up GitHub CLI (gh) integration to enable repository creation and management through command-line operations.",
+            "dependencies": [
+              1
+            ],
+            "details": "Detect if GitHub CLI is installed on the system, guide users through authentication if needed (gh auth login), and implement functions to execute gh commands through the existing secure shell command infrastructure. This approach is simpler and more reliable than API integration.",
+            "status": "pending",
+            "testStrategy": "Test GitHub CLI availability detection, authentication status checking, and basic repository operations to ensure reliable functionality."
+          },
+          {
+            "id": 9,
+            "title": "Automate Repository Creation via GitHub CLI",
+            "description": "Implement functionality to create new repositories on GitHub using GitHub CLI commands, streamlining project setup workflow.",
+            "dependencies": [
+              8
+            ],
+            "details": "Use 'gh repo create' command to automate repository creation with proper settings (public/private, description, etc.). Implement error handling for common scenarios like repository name conflicts and authentication issues. Provide user-friendly feedback and guidance.",
+            "status": "pending",
+            "testStrategy": "Test automatic repository creation with various configurations using GitHub CLI and verify that repositories are properly initialized with correct settings."
+          },
+          {
+            "id": 10,
+            "title": "Implement Advanced Branch Tracking and Management",
+            "description": "Enable creation and tracking of branches, ensuring local branches track their remote counterparts for comprehensive branch awareness.",
+            "dependencies": [
+              1,
+              8
+            ],
+            "details": "Use simple-git and Octokit to create branches, set up tracking (e.g., using --track or branch -u), and verify tracking status. Implement branch switching detection and progress correlation.",
+            "status": "pending",
+            "testStrategy": "Test branch creation, tracking setup, and switching scenarios to ensure reliable branch management and progress tracking."
+          },
+          {
+            "id": 11,
+            "title": "Test All Advanced Git and GitHub Operations",
+            "description": "Develop and execute comprehensive tests for all implemented Git and GitHub integration features including commit analysis and task correlation.",
+            "dependencies": [
+              7,
+              9,
+              10
+            ],
+            "details": "Write unit and integration tests to validate commit analysis, task correlation, repo creation, and branch tracking. Ensure all advanced features work reliably.",
+            "status": "pending",
+            "testStrategy": "Execute comprehensive test suite covering all git operations, GitHub integration, and advanced features to ensure system reliability and accuracy."
+          },
+          {
+            "id": 12,
+            "title": "Document Comprehensive Git Integration Workflow",
+            "description": "Create comprehensive documentation for setup, usage, and troubleshooting of all Git integration features including advanced capabilities.",
+            "dependencies": [
+              11
+            ],
+            "details": "Prepare README and developer guides covering all implemented features and their APIs, including basic operations, GitHub integration, commit analysis, and task correlation.",
+            "status": "pending",
+            "testStrategy": "Review documentation for completeness and accuracy, ensuring all features are properly documented with usage examples."
           }
         ]
       }

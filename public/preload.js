@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitAddRemote: (repoPath, name, url) => ipcRenderer.invoke('git-add-remote', repoPath, name, url),
   gitGetRemotes: (repoPath) => ipcRenderer.invoke('git-get-remotes', repoPath),
   gitGetLog: (repoPath, options) => ipcRenderer.invoke('git-get-log', repoPath, options),
+  gitAnalyzeCommits: (repoPath, options) => ipcRenderer.invoke('git-analyze-commits', repoPath, options),
   
   // Simple PTY API - following proven pattern
   spawnPty: (options) => ipcRenderer.send('pty:spawn', options),
