@@ -55,6 +55,13 @@ export const electronAPI = {
     throw new Error('Git operations are only available in Electron');
   },
 
+  gitUnstage: async (repoPath: string, files: string[]) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.gitUnstage(repoPath, files);
+    }
+    throw new Error('Git operations are only available in Electron');
+  },
+
   gitCommit: async (repoPath: string, message: string) => {
     if (electronAPI.isElectron()) {
       return window.electronAPI!.gitCommit(repoPath, message);
@@ -107,6 +114,13 @@ export const electronAPI = {
   gitGetLog: async (repoPath: string, options?: any) => {
     if (electronAPI.isElectron()) {
       return window.electronAPI!.gitGetLog(repoPath, options);
+    }
+    throw new Error('Git operations are only available in Electron');
+  },
+
+  gitGetFileStatus: async (repoPath: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.gitGetFileStatus(repoPath);
     }
     throw new Error('Git operations are only available in Electron');
   },

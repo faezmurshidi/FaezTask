@@ -265,6 +265,16 @@ ipcMain.handle('git-add', async (event, repoPath, files = ['.']) => {
   }
 });
 
+ipcMain.handle('git-unstage', async (event, repoPath, files) => {
+  try {
+    const git = simpleGit(repoPath);
+    await git.reset(['HEAD', '--', ...files]);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle('git-commit', async (event, repoPath, message) => {
   try {
     const git = simpleGit(repoPath);
@@ -420,6 +430,88 @@ ipcMain.handle('git-get-log', async (event, repoPath, options = {}) => {
     return { success: true, log };
   } catch (error) {
     return { success: false, error: error.message, log: null };
+  }
+});
+
+ipcMain.handle('git-get-file-status', async (event, repoPath) => {
+  try {
+    const git = simpleGit(repoPath);
+    
+    // Check if it's a git repository
+    let isRepo = true;
+    try {
+      await git.status();
+    } catch (error) {
+      isRepo = false;
+    }
+    
+    if (!isRepo) {
+      return { success: true, files: [] };
+    }
+
+    const status = await git.status();
+    const files = [];
+    
+    // Process staged files
+    status.staged.forEach(file => {
+      files.push({
+        path: file,
+        status: 'M', // Modified and staged
+        staged: true
+      });
+    });
+    
+    // Process modified files
+    status.modified.forEach(file => {
+      if (!files.find(f => f.path === file)) {
+        files.push({
+          path: file,
+          status: 'M', // Modified
+          staged: false
+        });
+      }
+    });
+    
+    // Process created files
+    status.created.forEach(file => {
+      files.push({
+        path: file,
+        status: 'A', // Added and staged
+        staged: true
+      });
+    });
+    
+    // Process new files (untracked)
+    status.not_added.forEach(file => {
+      files.push({
+        path: file,
+        status: '??', // Untracked
+        staged: false
+      });
+    });
+    
+    // Process deleted files
+    status.deleted.forEach(file => {
+      files.push({
+        path: file,
+        status: 'D', // Deleted
+        staged: false
+      });
+    });
+    
+    // Process renamed files
+    status.renamed.forEach(file => {
+      files.push({
+        path: file.to || file,
+        status: 'R', // Renamed
+        staged: true
+      });
+    });
+    
+    return { success: true, files };
+  } catch (error) {
+    console.error('Error getting file status:', error);
+    return { success: false, error: error.message, files: [] };
   }
 });
 

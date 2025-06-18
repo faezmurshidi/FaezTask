@@ -30,6 +30,7 @@ declare global {
       gitStatus: (repoPath: string) => Promise<any>;
       gitInit: (repoPath: string) => Promise<any>;
       gitAdd: (repoPath: string, files?: string[]) => Promise<any>;
+      gitUnstage: (repoPath: string, files: string[]) => Promise<any>;
       gitCommit: (repoPath: string, message: string) => Promise<any>;
       gitPush: (repoPath: string, remote?: string, branch?: string) => Promise<any>;
       gitPushUpstream: (repoPath: string, remote?: string, branch?: string) => Promise<any>;
@@ -38,6 +39,7 @@ declare global {
       gitAddRemote: (repoPath: string, name: string, url: string) => Promise<any>;
       gitGetRemotes: (repoPath: string) => Promise<any>;
       gitGetLog: (repoPath: string, options?: any) => Promise<any>;
+      gitGetFileStatus: (repoPath: string) => Promise<any>;
       gitAnalyzeCommits: (repoPath: string, options?: any) => Promise<any>;
       
       // Simple PTY API - following proven pattern

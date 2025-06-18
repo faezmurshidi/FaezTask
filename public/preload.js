@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitStatus: (repoPath) => ipcRenderer.invoke('git-status', repoPath),
   gitInit: (repoPath) => ipcRenderer.invoke('git-init', repoPath),
   gitAdd: (repoPath, files) => ipcRenderer.invoke('git-add', repoPath, files),
+  gitUnstage: (repoPath, files) => ipcRenderer.invoke('git-unstage', repoPath, files),
   gitCommit: (repoPath, message) => ipcRenderer.invoke('git-commit', repoPath, message),
   gitPush: (repoPath, remote, branch) => ipcRenderer.invoke('git-push', repoPath, remote, branch),
   gitPushUpstream: (repoPath, remote, branch) => ipcRenderer.invoke('git-push-upstream', repoPath, remote, branch),
@@ -40,6 +41,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitAddRemote: (repoPath, name, url) => ipcRenderer.invoke('git-add-remote', repoPath, name, url),
   gitGetRemotes: (repoPath) => ipcRenderer.invoke('git-get-remotes', repoPath),
   gitGetLog: (repoPath, options) => ipcRenderer.invoke('git-get-log', repoPath, options),
+  gitGetFileStatus: (repoPath) => ipcRenderer.invoke('git-get-file-status', repoPath),
   gitAnalyzeCommits: (repoPath, options) => ipcRenderer.invoke('git-analyze-commits', repoPath, options),
   
   // Simple PTY API - following proven pattern

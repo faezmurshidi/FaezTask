@@ -54,17 +54,18 @@ export default function GitView() {
   };
 
   const loadFileChanges = async () => {
-    // Mock file changes for now - in real implementation, we'd parse git status output
-    // This would come from a more detailed git status command
-    setFileChanges([
-      { path: 'src/components/GitView.tsx', status: 'A', staged: false },
-      { path: 'src/components/GitStatusBadge.tsx', status: 'A', staged: false },
-      { path: 'src/components/GitPanel.tsx', status: 'A', staged: false },
-      { path: 'src/lib/gitService.ts', status: 'A', staged: false },
-      { path: 'public/electron.js', status: 'M', staged: false },
-      { path: 'public/preload.js', status: 'M', staged: false },
-      { path: 'package.json', status: 'M', staged: false },
-    ]);
+    try {
+      const result = await electronAPI.gitGetFileStatus(projectPath);
+      if (result.success) {
+        setFileChanges(result.files);
+      } else {
+        console.error('Failed to load file changes:', result.error);
+        setFileChanges([]);
+      }
+    } catch (error) {
+      console.error('Failed to load file changes:', error);
+      setFileChanges([]);
+    }
   };
 
   const handleInitGit = async () => {
@@ -87,13 +88,13 @@ export default function GitView() {
     try {
       const result = await electronAPI.gitAdd(projectPath, [filePath]);
       if (result.success) {
-        // Update file status to staged
-        setFileChanges(prev => 
-          prev.map(file => 
-            file.path === filePath ? { ...file, staged: true } : file
-          )
-        );
-        await loadGitStatus();
+        // Reload both git status and file changes for accurate state
+        await Promise.all([
+          loadGitStatus(),
+          loadFileChanges()
+        ]);
+      } else {
+        console.error('Failed to stage file:', result.error);
       }
     } catch (error) {
       console.error('Failed to stage file:', error);
@@ -107,11 +108,36 @@ export default function GitView() {
     try {
       const result = await electronAPI.gitAdd(projectPath, ['.']);
       if (result.success) {
-        setFileChanges(prev => prev.map(file => ({ ...file, staged: true })));
-        await loadGitStatus();
+        // Reload both git status and file changes for accurate state
+        await Promise.all([
+          loadGitStatus(),
+          loadFileChanges()
+        ]);
+      } else {
+        console.error('Failed to stage all files:', result.error);
       }
     } catch (error) {
       console.error('Failed to stage all files:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUnstageFile = async (filePath: string) => {
+    setActionLoading(`unstage-${filePath}`);
+    try {
+      const result = await electronAPI.gitUnstage(projectPath, [filePath]);
+      if (result.success) {
+        // Reload both git status and file changes for accurate state
+        await Promise.all([
+          loadGitStatus(),
+          loadFileChanges()
+        ]);
+      } else {
+        console.error('Failed to unstage file:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to unstage file:', error);
     } finally {
       setActionLoading(null);
     }
@@ -125,8 +151,13 @@ export default function GitView() {
       const result = await electronAPI.gitCommit(projectPath, commitMessage);
       if (result.success) {
         setCommitMessage('');
-        await loadGitStatus();
-        await loadFileChanges();
+        // Reload both git status and file changes for accurate state
+        await Promise.all([
+          loadGitStatus(),
+          loadFileChanges()
+        ]);
+      } else {
+        console.error('Failed to commit:', result.error);
       }
     } catch (error) {
       console.error('Failed to commit:', error);
@@ -144,7 +175,10 @@ export default function GitView() {
     try {
       const result = await electronAPI.gitPush(projectPath);
       if (result.success) {
-        await loadGitStatus();
+        await Promise.all([
+          loadGitStatus(),
+          loadFileChanges()
+        ]);
       } else {
         setPushError(result.error || 'Failed to push');
         if (result.needsUpstream) {
@@ -170,7 +204,10 @@ export default function GitView() {
     try {
       const result = await electronAPI.gitPushUpstream(projectPath);
       if (result.success) {
-        await loadGitStatus();
+        await Promise.all([
+          loadGitStatus(),
+          loadFileChanges()
+        ]);
       } else {
         setPushError(result.error || 'Failed to push with upstream');
       }
@@ -191,7 +228,10 @@ export default function GitView() {
     try {
       const result = await electronAPI.gitPullAndPush(projectPath);
       if (result.success) {
-        await loadGitStatus();
+        await Promise.all([
+          loadGitStatus(),
+          loadFileChanges()
+        ]);
       } else {
         setPushError(result.error || 'Failed to pull and push');
       }
@@ -208,8 +248,10 @@ export default function GitView() {
     try {
       const result = await electronAPI.gitPull(projectPath);
       if (result.success) {
-        await loadGitStatus();
-        await loadFileChanges();
+        await Promise.all([
+          loadGitStatus(),
+          loadFileChanges()
+        ]);
       }
     } catch (error) {
       console.error('Failed to pull:', error);
@@ -218,20 +260,52 @@ export default function GitView() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, staged: boolean) => {
+    const baseColor = staged ? 'text-green-600' : '';
+    
     switch (status) {
       case 'M':
-        return { icon: '📝', text: 'Modified', color: 'text-yellow-600' };
+        return { 
+          icon: staged ? '📝✅' : '📝', 
+          text: staged ? 'Modified (Staged)' : 'Modified', 
+          color: staged ? 'text-green-600' : 'text-yellow-600',
+          bgColor: staged ? 'bg-green-50' : 'bg-yellow-50'
+        };
       case 'A':
-        return { icon: '➕', text: 'Added', color: 'text-green-600' };
+        return { 
+          icon: staged ? '➕✅' : '➕', 
+          text: staged ? 'Added (Staged)' : 'Added', 
+          color: 'text-green-600',
+          bgColor: 'bg-green-50'
+        };
       case 'D':
-        return { icon: '🗑️', text: 'Deleted', color: 'text-red-600' };
+        return { 
+          icon: staged ? '🗑️✅' : '🗑️', 
+          text: staged ? 'Deleted (Staged)' : 'Deleted', 
+          color: staged ? 'text-green-600' : 'text-red-600',
+          bgColor: staged ? 'bg-green-50' : 'bg-red-50'
+        };
       case '??':
-        return { icon: '❓', text: 'Untracked', color: 'text-gray-600' };
+        return { 
+          icon: '❓', 
+          text: 'Untracked', 
+          color: 'text-gray-600',
+          bgColor: 'bg-gray-50'
+        };
       case 'R':
-        return { icon: '🔄', text: 'Renamed', color: 'text-blue-600' };
+        return { 
+          icon: staged ? '🔄✅' : '🔄', 
+          text: staged ? 'Renamed (Staged)' : 'Renamed', 
+          color: staged ? 'text-green-600' : 'text-blue-600',
+          bgColor: staged ? 'bg-green-50' : 'bg-blue-50'
+        };
       default:
-        return { icon: '📄', text: 'Changed', color: 'text-gray-600' };
+        return { 
+          icon: '📄', 
+          text: 'Changed', 
+          color: 'text-gray-600',
+          bgColor: 'bg-gray-50'
+        };
     }
   };
 
@@ -352,14 +426,38 @@ export default function GitView() {
           <div className="bg-white rounded-lg border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">File Changes</h3>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">File Changes</h3>
+                  {fileChanges.length > 0 && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      {fileChanges.filter(f => f.staged).length} staged · {fileChanges.filter(f => !f.staged).length} unstaged
+                    </p>
+                  )}
+                </div>
                 <div className="flex space-x-2">
                   <button
-                    onClick={handleStageAll}
-                    disabled={actionLoading === 'stage-all' || fileChanges.length === 0}
-                    className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                    onClick={() => {
+                      loadFileChanges();
+                      loadGitStatus();
+                    }}
+                    className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded hover:bg-gray-200 transition-colors"
+                    title="Refresh file status"
                   >
-                    {actionLoading === 'stage-all' ? 'Staging...' : 'Stage All'}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleStageAll}
+                    disabled={actionLoading === 'stage-all' || fileChanges.length === 0 || fileChanges.every(f => f.staged)}
+                    className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {actionLoading === 'stage-all' ? (
+                      <span className="flex items-center">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                        Staging...
+                      </span>
+                    ) : fileChanges.every(f => f.staged) ? 'All Staged' : 'Stage All'}
                   </button>
                 </div>
               </div>
@@ -371,19 +469,29 @@ export default function GitView() {
                   <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <p className="mt-2">No changes detected</p>
+                  <p className="mt-2 font-medium">Working directory clean</p>
+                  <p className="text-sm text-gray-400 mt-1">No changes detected in your repository</p>
+                  <button
+                    onClick={() => {
+                      loadFileChanges();
+                      loadGitStatus();
+                    }}
+                    className="mt-3 text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    Refresh Status
+                  </button>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-200">
                   {fileChanges.map((file) => {
-                    const statusInfo = getStatusIcon(file.status);
+                                              const statusInfo = getStatusIcon(file.status, file.staged);
                     return (
-                      <div key={file.path} className="p-4 hover:bg-gray-50">
+                      <div key={file.path} className={`p-4 hover:bg-gray-50 border-l-4 transition-colors ${file.staged ? 'border-green-400 bg-green-50' : 'border-gray-200'} ${statusInfo.bgColor}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3 flex-1">
-                            <span className="text-lg">{statusInfo.icon}</span>
+                            <span className={`text-lg ${statusInfo.color}`}>{statusInfo.icon}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
+                              <p className={`text-sm font-medium truncate ${file.staged ? 'text-green-800' : 'text-gray-900'}`}>
                                 {file.path}
                               </p>
                               <p className={`text-xs ${statusInfo.color}`}>
@@ -393,16 +501,53 @@ export default function GitView() {
                           </div>
                           <div className="flex items-center space-x-2">
                             {file.staged ? (
-                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                Staged
-                              </span>
+                              <div className="flex items-center space-x-2">
+                                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center">
+                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                  Staged
+                                </span>
+                                <button
+                                  onClick={() => handleUnstageFile(file.path)}
+                                  disabled={actionLoading === `unstage-${file.path}` || actionLoading === 'commit'}
+                                  className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded hover:bg-orange-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  title="Unstage this file"
+                                >
+                                  {actionLoading === `unstage-${file.path}` ? (
+                                    <span className="flex items-center">
+                                      <div className="animate-spin rounded-full h-2 w-2 border border-orange-600 border-t-transparent mr-1"></div>
+                                      Unstaging...
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center">
+                                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
+                                      </svg>
+                                      Unstage
+                                    </span>
+                                  )}
+                                </button>
+                              </div>
                             ) : (
                               <button
                                 onClick={() => handleStageFile(file.path)}
-                                disabled={actionLoading === `stage-${file.path}`}
-                                className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-50"
+                                disabled={actionLoading === `stage-${file.path}` || actionLoading === 'stage-all'}
+                                className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                               >
-                                {actionLoading === `stage-${file.path}` ? 'Staging...' : 'Stage'}
+                                {actionLoading === `stage-${file.path}` ? (
+                                  <span className="flex items-center">
+                                    <div className="animate-spin rounded-full h-2 w-2 border border-gray-600 border-t-transparent mr-1"></div>
+                                    Staging...
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center">
+                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    Stage
+                                  </span>
+                                )}
                               </button>
                             )}
                           </div>
@@ -433,10 +578,19 @@ export default function GitView() {
               </div>
               <button
                 onClick={handleCommit}
-                disabled={!commitMessage.trim() || actionLoading === 'commit'}
-                className="w-full bg-green-600 text-white py-2 px-4 rounded-md font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                disabled={!commitMessage.trim() || actionLoading === 'commit' || fileChanges.filter(f => f.staged).length === 0}
+                className="w-full bg-green-600 text-white py-2 px-4 rounded-md font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {actionLoading === 'commit' ? 'Committing...' : 'Commit Changes'}
+                {actionLoading === 'commit' ? (
+                  <span className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Committing...
+                  </span>
+                ) : fileChanges.filter(f => f.staged).length === 0 ? (
+                  'No Staged Changes'
+                ) : (
+                  `Commit ${fileChanges.filter(f => f.staged).length} File${fileChanges.filter(f => f.staged).length === 1 ? '' : 's'}`
+                )}
               </button>
             </div>
           </div>
