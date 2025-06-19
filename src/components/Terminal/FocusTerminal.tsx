@@ -214,7 +214,26 @@ const FocusTerminal: React.FC<FocusTerminalProps> = ({
         // Display beautiful welcome message
         setTimeout(() => {
           displayWelcomeMessage(xterm);
+          
+          // Auto-run "claude code" after welcome message
+          setTimeout(() => {
+            // Send the command to the terminal
+            electronAPI.terminal.sendInput(result.terminalId, 'claude code\r');
+          }, 3500); // Wait for welcome message animation to complete
         }, 500);
+
+        // Listen for custom terminal messages from Focus component
+        const handleTerminalMessage = (event: CustomEvent) => {
+          const { message } = event.detail;
+          if (message && xterm) {
+            xterm.write(`\x1b[36m${message}\x1b[0m\r\n`);
+          }
+        };
+
+        window.addEventListener('focus-terminal-message', handleTerminalMessage as EventListener);
+        cleanupCallbacks.current.push(() => {
+          window.removeEventListener('focus-terminal-message', handleTerminalMessage as EventListener);
+        });
 
       } catch (error) {
         console.error('Terminal initialization error:', error);

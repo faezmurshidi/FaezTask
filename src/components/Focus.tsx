@@ -41,6 +41,101 @@ const Focus: React.FC<FocusProps> = ({ projectPath }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+  const [isUpdatingTask, setIsUpdatingTask] = useState(false);
+
+  // Save tasks to .taskmaster/tasks/tasks.json
+  const saveTasks = async (updatedTasks: Task[]) => {
+    try {
+      if (electronAPI.isElectron()) {
+        const tasksPath = `${projectPath}/.taskmaster/tasks/tasks.json`;
+        const taskData: TaskData = {
+          master: {
+            tasks: updatedTasks
+          }
+        };
+        
+        const result = await electronAPI.writeFile(tasksPath, JSON.stringify(taskData, null, 2));
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to save tasks');
+        }
+        
+        return true;
+      } else {
+        console.warn('Cannot save tasks in browser mode');
+        return false;
+      }
+    } catch (err) {
+      console.error('Error saving tasks:', err);
+      throw err;
+    }
+  };
+
+  // Update task status and send instructions to terminal
+  const updateTaskStatus = async (taskId: number | string, newStatus: string) => {
+    try {
+      setIsUpdatingTask(true);
+      
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId 
+          ? { ...task, status: newStatus }
+          : task
+      );
+      
+      await saveTasks(updatedTasks);
+      setTasks(updatedTasks);
+      
+      // If starting work on a task, send instructions to terminal
+      if (newStatus === 'in-progress') {
+        const task = updatedTasks.find(t => t.id === taskId);
+        if (task) {
+          sendTaskInstructionsToTerminal(task);
+        }
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error updating task status:', err);
+      setError('Failed to update task status');
+      return false;
+    } finally {
+      setIsUpdatingTask(false);
+    }
+  };
+
+  // Send task instructions to terminal
+  const sendTaskInstructionsToTerminal = (task: Task) => {
+    if (typeof window !== 'undefined' && (window as any).electronAPI?.terminal) {
+      // Create a clean branch name from task title
+      const branchName = `${task.id}-${task.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single
+        .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+        .substring(0, 50)}`; // Limit length
+      
+      const instructions = [
+        '',
+        `Let's start working on the next task ${task.id}.`,
+        `Run "tm show ${task.id}" for more details.`,
+        `Before proceeding, check git status and if clean create a new branch "${branchName}".`,
+        `Then proceed to plan the implementation.`,
+        ''
+      ];
+
+      // Send each instruction line to terminal with a delay
+      instructions.forEach((instruction, index) => {
+        setTimeout(() => {
+          // Get the active terminal ID - we'll need to track this
+          const terminalEvent = new CustomEvent('focus-terminal-message', {
+            detail: { message: instruction }
+          });
+          window.dispatchEvent(terminalEvent);
+        }, index * 100);
+      });
+    }
+  };
 
   // Load tasks from .taskmaster/tasks/tasks.json
   const loadTasks = async () => {
@@ -401,8 +496,32 @@ const Focus: React.FC<FocusProps> = ({ projectPath }) => {
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-3 mt-6 pt-6 border-t border-blue-200">
-              <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md transition-colors">
-                Start Working
+              <button 
+                onClick={() => updateTaskStatus(focusTask.id, 'in-progress')}
+                disabled={isUpdatingTask || focusTask.status === 'in-progress'}
+                className={`px-6 py-3 font-medium rounded-lg shadow-md transition-colors ${
+                  focusTask.status === 'in-progress'
+                    ? 'bg-green-600 text-white cursor-default'
+                    : isUpdatingTask
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {isUpdatingTask ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Updating...</span>
+                  </div>
+                ) : focusTask.status === 'in-progress' ? (
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>In Progress</span>
+                  </div>
+                ) : (
+                  'Start Working'
+                )}
               </button>
               <button className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-lg border border-gray-300 transition-colors">
                 View All Tasks

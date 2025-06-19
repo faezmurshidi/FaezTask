@@ -339,7 +339,7 @@
         "id": 5,
         "title": "Develop Task Management Interface",
         "description": "Create a Kanban-style task board with task detail panel and local file integration for MVP.",
-        "status": "review",
+        "status": "in-progress",
         "dependencies": [
           3
         ],
@@ -2095,11 +2095,6 @@
         "priority": "medium",
         "subtasks": []
       }
-    ],
-    "metadata": {
-      "created": "2025-06-16T07:44:34.741Z",
-      "updated": "2025-06-18T08:32:11.706Z",
-      "description": "Tasks for master context"
-    }
+    ]
   }
 }
