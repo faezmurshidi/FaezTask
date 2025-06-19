@@ -1313,140 +1313,174 @@ ipcMain.handle('taskmaster-stop-file-watching', async () => {
   }
 });
 
-// Terminal functionality using child_process (reverting while we fix node-pty)
+// Terminal functionality using node-pty for proper pseudo-terminal support
+const pty = require('node-pty');
 
-// Single terminal instance - following proven pattern
-let ptyProcess = null;
+// Multiple terminal instances support
+const terminals = new Map();
+let terminalIdCounter = 1;
 
-ipcMain.on('pty:spawn', (event, options) => {
+// Terminal management
+ipcMain.handle('terminal-create', async (event, options = {}) => {
   try {
-    console.log('PTY spawn requested with options:', options);
+    console.log('Creating terminal with options:', options);
     
-    // Determine shell
+    // Determine shell based on platform
     const shell = os.platform() === 'win32' ? 'powershell.exe' : 
                   process.env.SHELL || '/bin/zsh';
     
-    console.log('Using shell:', shell, 'on platform:', os.platform());
+    const { cols = 80, rows = 24, cwd = process.cwd() } = options;
     
-    // Create PTY using child_process for now
-    ptyProcess = spawn(shell, ['-i', '-l'], {
-      cwd: process.cwd(),
+    // Create pseudo-terminal
+    const ptyProcess = pty.spawn(shell, [], {
+      name: 'xterm-color',
+      cols,
+      rows,
+      cwd,
       env: {
         ...process.env,
         TERM: 'xterm-256color',
         LANG: 'en_US.UTF-8',
         LC_ALL: 'en_US.UTF-8',
         COLORTERM: 'truecolor',
-        PS1: '$ ', // Simple prompt to avoid complex shell setup
         FORCE_COLOR: '1'
-      },
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-    
-    console.log('PTY created with PID:', ptyProcess.pid);
-    
-    // Handle terminal output
-    ptyProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      console.log('PTY stdout:', JSON.stringify(output));
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('pty:data', output);
-      }
-    });
-
-    ptyProcess.stderr.on('data', (data) => {
-      const output = data.toString();
-      console.log('PTY stderr:', JSON.stringify(output));
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('pty:data', output);
       }
     });
     
-    // Handle process exit
-    ptyProcess.on('exit', (code) => {
-      console.log('PTY exited with code:', code);
-      ptyProcess = null;
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('pty:exit', code);
-      }
+    const terminalId = terminalIdCounter++;
+    
+    // Store terminal instance
+    terminals.set(terminalId, {
+      pty: ptyProcess,
+      listeners: []
     });
     
-    // Send initial command to show terminal is ready
-    setTimeout(() => {
-      console.log('Sending welcome message to PTY');
-      ptyProcess.stdin.write('echo "Terminal Ready!"\n');
-      ptyProcess.stdin.write('pwd\n');
-    }, 500);
+    console.log(`Terminal ${terminalId} created with PID:`, ptyProcess.pid);
+    
+    return { 
+      success: true, 
+      terminalId,
+      pid: ptyProcess.pid
+    };
     
   } catch (error) {
-    console.error('PTY creation error:', error);
+    console.error('Terminal creation error:', error);
+    return { 
+      success: false, 
+      error: error.message 
+    };
   }
 });
 
-ipcMain.on('pty:input', (event, input) => {
+ipcMain.handle('terminal-send-input', async (event, terminalId, data) => {
   try {
-    console.log('PTY input received:', input.charCodeAt(0), JSON.stringify(input));
-    if (!ptyProcess) {
-      console.error('No PTY process available');
-      return;
+    const terminal = terminals.get(terminalId);
+    if (!terminal) {
+      return { success: false, error: 'Terminal not found' };
     }
     
-    console.log('Writing to PTY stdin...');
-    
-    // Handle special keys
-    if (input === '\r') {
-      // Enter key - send newline and execute command
-      ptyProcess.stdin.write('\n');
-      // Echo the newline to terminal
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('pty:data', '\r\n');
-      }
-    } else if (input === '\u007F' || input === '\b') {
-      // Backspace - handle deletion
-      ptyProcess.stdin.write(input);
-      // Echo backspace sequence to terminal
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('pty:data', '\b \b');
-      }
-    } else if (input.charCodeAt(0) >= 32 && input.charCodeAt(0) <= 126) {
-      // Printable characters - echo them back immediately
-      ptyProcess.stdin.write(input);
-      // Echo the character to terminal for immediate feedback
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('pty:data', input);
-      }
-    } else {
-      // Control characters and other special keys
-      ptyProcess.stdin.write(input);
-    }
-    
-    console.log('Input written successfully');
+    terminal.pty.write(data);
+    return { success: true };
     
   } catch (error) {
-    console.error('Error writing to PTY:', error);
+    console.error(`Error sending input to terminal ${terminalId}:`, error);
+    return { success: false, error: error.message };
   }
 });
 
-ipcMain.on('pty:resize', (event, size) => {
+ipcMain.handle('terminal-resize', async (event, terminalId, cols, rows) => {
   try {
-    if (!ptyProcess) {
-      console.error('No PTY process available for resize');
-      return;
+    const terminal = terminals.get(terminalId);
+    if (!terminal) {
+      return { success: false, error: 'Terminal not found' };
     }
     
-    // Note: Resize functionality limited with child_process
-    // Would be available with node-pty
-    console.log('PTY resize requested:', size);
+    terminal.pty.resize(cols, rows);
+    return { success: true };
     
   } catch (error) {
-    console.error('Error resizing PTY:', error);
+    console.error(`Error resizing terminal ${terminalId}:`, error);
+    return { success: false, error: error.message };
   }
 });
 
-// Clean up PTY on app quit
+ipcMain.handle('terminal-close', async (event, terminalId) => {
+  try {
+    const terminal = terminals.get(terminalId);
+    if (!terminal) {
+      return { success: false, error: 'Terminal not found' };
+    }
+    
+    // Clean up listeners
+    terminal.listeners.forEach(cleanup => cleanup());
+    
+    // Kill the PTY process
+    terminal.pty.kill();
+    
+    // Remove from map
+    terminals.delete(terminalId);
+    
+    console.log(`Terminal ${terminalId} closed`);
+    return { success: true };
+    
+  } catch (error) {
+    console.error(`Error closing terminal ${terminalId}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Set up terminal output listeners
+ipcMain.handle('terminal-setup-listeners', async (event, terminalId) => {
+  try {
+    const terminal = terminals.get(terminalId);
+    if (!terminal) {
+      return { success: false, error: 'Terminal not found' };
+    }
+    
+    // Data listener
+    const dataListener = (data) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('terminal-output', terminalId, data);
+      }
+    };
+    
+    // Exit listener
+    const exitListener = (code, signal) => {
+      console.log(`Terminal ${terminalId} exited with code:`, code, 'signal:', signal);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('terminal-exit', terminalId, code, signal);
+      }
+      terminals.delete(terminalId);
+    };
+    
+    terminal.pty.on('data', dataListener);
+    terminal.pty.on('exit', exitListener);
+    
+    // Store cleanup functions
+    terminal.listeners.push(
+      () => terminal.pty.off('data', dataListener),
+      () => terminal.pty.off('exit', exitListener)
+    );
+    
+    return { success: true };
+    
+  } catch (error) {
+    console.error(`Error setting up listeners for terminal ${terminalId}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Clean up all terminals on app quit
 app.on('before-quit', () => {
-  if (ptyProcess) {
-    ptyProcess.kill();
-    ptyProcess = null;
-  }
+  console.log('Cleaning up terminals before quit...');
+  terminals.forEach((terminal, terminalId) => {
+    try {
+      terminal.listeners.forEach(cleanup => cleanup());
+      terminal.pty.kill();
+      console.log(`Cleaned up terminal ${terminalId}`);
+    } catch (error) {
+      console.error(`Error cleaning up terminal ${terminalId}:`, error);
+    }
+  });
+  terminals.clear();
 });

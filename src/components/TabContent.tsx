@@ -3,7 +3,7 @@
 import React from 'react';
 import { useTabContext } from '../contexts/TabContext';
 import TaskBoard from './TaskBoard';
-import Terminal from './Terminal/Terminal';
+import { ImprovedTerminal } from './Terminal';
 import Dashboard from './Dashboard';
 
 const TabContent: React.FC = () => {
@@ -24,8 +24,11 @@ const TabContent: React.FC = () => {
         return <TaskBoard projectPath={activeTab.project?.local_folder_path || ''} />;
       case 'terminal':
         return (
-          <div className="flex-1 bg-gray-900">
-            <Terminal />
+          <div className="flex-1 bg-gray-900 p-4">
+            <ImprovedTerminal 
+              className="h-full"
+              cwd={activeTab.project?.local_folder_path}
+            />
           </div>
         );
       case 'dashboard':

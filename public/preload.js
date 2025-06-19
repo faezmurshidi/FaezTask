@@ -44,12 +44,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitGetFileStatus: (repoPath) => ipcRenderer.invoke('git-get-file-status', repoPath),
   gitAnalyzeCommits: (repoPath, options) => ipcRenderer.invoke('git-analyze-commits', repoPath, options),
   
-  // Simple PTY API - following proven pattern
-  spawnPty: (options) => ipcRenderer.send('pty:spawn', options),
-  onPtyData: (callback) => ipcRenderer.on('pty:data', (_event, data) => callback(data)),
-  sendPtyInput: (input) => ipcRenderer.send('pty:input', input),
-  resizePty: (size) => ipcRenderer.send('pty:resize', size),
-  onPtyExit: (callback) => ipcRenderer.on('pty:exit', callback),
+  // Terminal API using node-pty for proper pseudo-terminal support
+  terminal: {
+    create: (options) => ipcRenderer.invoke('terminal-create', options),
+    sendInput: (terminalId, data) => ipcRenderer.invoke('terminal-send-input', terminalId, data),
+    resize: (terminalId, cols, rows) => ipcRenderer.invoke('terminal-resize', terminalId, cols, rows),
+    close: (terminalId) => ipcRenderer.invoke('terminal-close', terminalId),
+    setupListeners: (terminalId) => ipcRenderer.invoke('terminal-setup-listeners', terminalId),
+    onOutput: (terminalId, callback) => {
+      const handler = (_event, receivedTerminalId, data) => {
+        if (receivedTerminalId === terminalId) {
+          callback(data);
+        }
+      };
+      ipcRenderer.on('terminal-output', handler);
+      return () => ipcRenderer.off('terminal-output', handler);
+    },
+    onExit: (terminalId, callback) => {
+      const handler = (_event, receivedTerminalId, code, signal) => {
+        if (receivedTerminalId === terminalId) {
+          callback(code, signal);
+        }
+      };
+      ipcRenderer.on('terminal-exit', handler);
+      return () => ipcRenderer.off('terminal-exit', handler);
+    }
+  },
   
   // Cleanup listeners
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)

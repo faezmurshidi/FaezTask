@@ -8,7 +8,7 @@ import Dashboard from './Dashboard';
 import ProjectList from './ProjectList';
 import GitView from './GitView';
 import TaskBoard from './TaskBoard';
-import Terminal from './Terminal/Terminal';
+import { ImprovedTerminal } from './Terminal';
 import Focus from './Focus';
 
 interface LayoutProps {
@@ -56,8 +56,11 @@ export default function Layout({ children }: LayoutProps) {
               </div>
               
               {/* Right side - Terminal */}
-              <div className="w-96 bg-gray-900">
-                <Terminal />
+              <div className="w-96 bg-gray-900 p-4">
+                <ImprovedTerminal 
+                  className="h-full"
+                  cwd={selectedProject.local_folder_path}
+                />
               </div>
             </div>
           );
