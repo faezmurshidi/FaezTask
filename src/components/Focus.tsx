@@ -38,9 +38,9 @@ interface FocusProps {
 
 const Focus: React.FC<FocusProps> = ({ projectPath }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
   // Load tasks from .taskmaster/tasks/tasks.json
   const loadTasks = async () => {
@@ -111,218 +111,12 @@ const Focus: React.FC<FocusProps> = ({ projectPath }) => {
       case 'review': return 'text-yellow-600 bg-yellow-100';
       case 'blocked': return 'text-red-600 bg-red-100';
       case 'deferred': return 'text-purple-600 bg-purple-100';
+      case 'done': return 'text-green-600 bg-green-100';
       default: return 'text-gray-600 bg-gray-100';
     }
   };
 
-  // Render task card
-  const renderTaskCard = (task: Task, isFocus = false) => (
-    <div
-      key={task.id}
-      className={`
-        p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md
-        ${isFocus ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}
-        ${selectedTask?.id === task.id ? 'ring-2 ring-blue-500 border-blue-500' : ''}
-      `}
-      onClick={() => setSelectedTask(task)}
-    >
-      {/* Task Header */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center space-x-2">
-          <span className={`
-            px-2 py-1 text-xs font-medium rounded-full border
-            ${getPriorityColor(task.priority)}
-          `}>
-            {task.priority}
-          </span>
-          <span className={`
-            px-2 py-1 text-xs font-medium rounded-full
-            ${getStatusColor(task.status)}
-          `}>
-            {task.status}
-          </span>
-        </div>
-        <div className="flex items-center space-x-2 text-xs text-gray-500">
-          <span>#{task.id}</span>
-          {task.complexityScore && (
-            <span className="px-1.5 py-0.5 bg-gray-100 rounded">
-              {task.complexityScore}/10
-            </span>
-          )}
-        </div>
-      </div>
 
-      {/* Task Title */}
-      <h3 className={`font-semibold mb-2 ${isFocus ? 'text-blue-900' : 'text-gray-900'}`}>
-        {task.title}
-      </h3>
-
-      {/* Task Description */}
-      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-        {task.description}
-      </p>
-
-      {/* Task Metadata */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        {/* Dependencies */}
-        {task.dependencies.length > 0 && (
-          <div className="flex items-center space-x-1">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-            <span>{task.dependencies.length} deps</span>
-          </div>
-        )}
-
-        {/* Subtasks */}
-        {task.subtasks && task.subtasks.length > 0 && (
-          <div className="flex items-center space-x-1">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <span>
-              {task.subtasks.filter(st => st.status === 'done').length}/{task.subtasks.length} subtasks
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // Render task details panel
-  const renderTaskDetails = () => {
-    if (!selectedTask) {
-      return (
-        <div className="h-full flex items-center justify-center text-gray-500">
-          <div className="text-center">
-            <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p>Select a task to view details</p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="h-full overflow-y-auto">
-        {/* Task Header */}
-        <div className="border-b border-gray-200 pb-4 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-bold text-gray-900">Task #{selectedTask.id}</h2>
-            <button
-              onClick={() => setSelectedTask(null)}
-              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">{selectedTask.title}</h3>
-          
-          <div className="flex items-center space-x-3">
-            <span className={`
-              px-3 py-1 text-sm font-medium rounded-full border
-              ${getPriorityColor(selectedTask.priority)}
-            `}>
-              {selectedTask.priority} priority
-            </span>
-            <span className={`
-              px-3 py-1 text-sm font-medium rounded-full
-              ${getStatusColor(selectedTask.status)}
-            `}>
-              {selectedTask.status}
-            </span>
-            {selectedTask.complexityScore && (
-              <span className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full">
-                Complexity: {selectedTask.complexityScore}/10
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Task Content */}
-        <div className="space-y-6">
-          {/* Description */}
-          <div>
-            <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-            <p className="text-gray-700 leading-relaxed">{selectedTask.description}</p>
-          </div>
-
-          {/* Details */}
-          {selectedTask.details && (
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-2">Implementation Details</h4>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <pre className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                  {selectedTask.details}
-                </pre>
-              </div>
-            </div>
-          )}
-
-          {/* Test Strategy */}
-          {selectedTask.testStrategy && (
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-2">Test Strategy</h4>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-green-800 text-sm leading-relaxed">{selectedTask.testStrategy}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Dependencies */}
-          {selectedTask.dependencies.length > 0 && (
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-2">Dependencies</h4>
-              <div className="space-y-2">
-                {selectedTask.dependencies.map((depId) => (
-                  <div key={depId} className="flex items-center space-x-2 text-sm">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    <span className="text-gray-600">Task #{depId}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Subtasks */}
-          {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3">
-                Subtasks ({selectedTask.subtasks.filter(st => st.status === 'done').length}/{selectedTask.subtasks.length} completed)
-              </h4>
-              <div className="space-y-3">
-                {selectedTask.subtasks.map((subtask) => (
-                  <div key={subtask.id} className="border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="font-medium text-gray-900">#{selectedTask.id}.{subtask.id} {subtask.title}</span>
-                      <span className={`
-                        px-2 py-1 text-xs font-medium rounded-full
-                        ${getStatusColor(subtask.status)}
-                      `}>
-                        {subtask.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{subtask.description}</p>
-                    {subtask.details && (
-                      <div className="bg-gray-50 rounded p-2 text-xs text-gray-700">
-                        <pre className="whitespace-pre-wrap">{subtask.details}</pre>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   if (loading) {
     return (
@@ -358,63 +152,275 @@ const Focus: React.FC<FocusProps> = ({ projectPath }) => {
   }
 
   return (
-    <div className="h-full flex">
-      {/* Left Panel - Task Lists */}
-      <div className="w-1/2 border-r border-gray-200 p-6 overflow-y-auto">
-        <div className="space-y-8">
-          {/* Focus Task Section */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">🎯 Today&apos;s Focus</h2>
-              {focusTask && (
-                <span className="text-sm text-gray-500">Next recommended task</span>
-              )}
-            </div>
-            
-            {focusTask ? (
-              renderTaskCard(focusTask, true)
-            ) : (
-              <div className="p-8 border-2 border-dashed border-gray-300 rounded-lg text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <p className="text-gray-600 font-medium">All tasks completed! 🎉</p>
-                <p className="text-gray-500 text-sm mt-1">Great job staying on top of your work.</p>
-              </div>
-            )}
-          </div>
+    <div className="h-full p-8 overflow-y-auto">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">🎯 Focus Mode</h1>
+          <p className="text-gray-600">Your recommended task to work on right now</p>
+        </div>
 
-          {/* All Pending Tasks Section */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">📋 All Pending Tasks</h2>
-              <span className="text-sm text-gray-500">{pendingTasks.length} tasks</span>
+        {/* Quick Stats */}
+        <div className="mb-8 grid grid-cols-3 gap-4">
+          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Tasks</p>
+                <p className="text-xl font-bold text-gray-900">{tasks.length}</p>
+              </div>
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
             </div>
-            
-            {pendingTasks.length > 0 ? (
-              <div className="space-y-3">
-                {pendingTasks.map((task) => renderTaskCard(task))}
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-xl font-bold text-orange-600">{pendingTasks.length}</p>
               </div>
-            ) : (
-              <div className="p-8 border-2 border-dashed border-gray-300 rounded-lg text-center">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                <p className="text-gray-600">No pending tasks</p>
-                <p className="text-gray-500 text-sm mt-1">All tasks are completed!</p>
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-            )}
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Completed</p>
+                <p className="text-xl font-bold text-green-600">{tasks.length - pendingTasks.length}</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Right Panel - Task Details */}
-      <div className="w-1/2 p-6">
-        {renderTaskDetails()}
+        {/* Focus Task Card */}
+        {focusTask ? (
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 rounded-2xl p-8 shadow-lg">
+            {/* Task Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-blue-700 uppercase tracking-wide">
+                  Currently Recommended
+                </span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className={`
+                  px-3 py-1 text-sm font-medium rounded-full border-2
+                  ${getPriorityColor(focusTask.priority)}
+                `}>
+                  {focusTask.priority} priority
+                </span>
+                <span className="text-sm text-gray-500 font-mono">#{focusTask.id}</span>
+              </div>
+            </div>
+
+            {/* Task Content */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-gray-900 leading-tight">
+                {focusTask.title}
+              </h2>
+              
+              <p className="text-gray-700 text-lg leading-relaxed">
+                {focusTask.description}
+              </p>
+
+              {/* Task Metadata */}
+              <div className="flex items-center space-x-6 pt-4 border-t border-blue-200">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-medium">{focusTask.status}</span>
+                </div>
+                
+                {focusTask.complexityScore && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span>Complexity: {focusTask.complexityScore}/10</span>
+                  </div>
+                )}
+                
+                {focusTask.dependencies.length > 0 && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <span>{focusTask.dependencies.length} dependencies</span>
+                  </div>
+                )}
+                
+                {focusTask.subtasks && focusTask.subtasks.length > 0 && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>
+                      {focusTask.subtasks.filter(st => st.status === 'done').length}/{focusTask.subtasks.length} subtasks done
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Expand Details Button - Only show if there are details to show */}
+            {(focusTask.details || focusTask.testStrategy || focusTask.dependencies.length > 0 || (focusTask.subtasks && focusTask.subtasks.length > 0)) && (
+              <div className="mt-6 pt-6 border-t border-blue-200">
+                <button
+                  onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
+                  className="flex items-center justify-between w-full text-left text-blue-700 hover:text-blue-800 font-medium transition-colors group"
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>{isDetailsExpanded ? 'Hide Details' : 'Show Full Details'}</span>
+                    <div className="flex items-center space-x-1 text-xs text-gray-500">
+                      {focusTask.details && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Details</span>}
+                      {focusTask.testStrategy && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Tests</span>}
+                      {focusTask.dependencies.length > 0 && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">{focusTask.dependencies.length} Deps</span>}
+                      {focusTask.subtasks && focusTask.subtasks.length > 0 && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{focusTask.subtasks.length} Subtasks</span>}
+                    </div>
+                  </div>
+                  <svg 
+                    className={`w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${isDetailsExpanded ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Collapsible Details Section */}
+            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isDetailsExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="mt-6 space-y-6 pt-6 border-t border-blue-200">
+                
+                {/* Implementation Details */}
+                {focusTask.details && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Implementation Details
+                    </h4>
+                    <div className="bg-white/70 backdrop-blur rounded-lg p-4 border border-blue-100">
+                      <pre className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">
+                        {focusTask.details}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {/* Test Strategy */}
+                {focusTask.testStrategy && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Test Strategy
+                    </h4>
+                    <div className="bg-green-50/70 backdrop-blur border border-green-200 rounded-lg p-4">
+                      <p className="text-green-800 text-sm leading-relaxed">{focusTask.testStrategy}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dependencies */}
+                {focusTask.dependencies.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      Dependencies
+                    </h4>
+                    <div className="space-y-2">
+                      {focusTask.dependencies.map((depId) => (
+                        <div key={depId} className="flex items-center space-x-3 bg-white/70 backdrop-blur rounded-lg p-3 border border-blue-100">
+                          <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                          <span className="text-gray-700 font-medium">Task #{depId}</span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Required</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Subtasks */}
+                {focusTask.subtasks && focusTask.subtasks.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      Subtasks ({focusTask.subtasks.filter(st => st.status === 'done').length}/{focusTask.subtasks.length} completed)
+                    </h4>
+                    <div className="space-y-3">
+                      {focusTask.subtasks.map((subtask) => (
+                        <div key={subtask.id} className="bg-white/70 backdrop-blur border border-blue-100 rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <span className="font-medium text-gray-900">#{focusTask.id}.{subtask.id} {subtask.title}</span>
+                            <span className={`
+                              px-2 py-1 text-xs font-medium rounded-full
+                              ${getStatusColor(subtask.status)}
+                            `}>
+                              {subtask.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">{subtask.description}</p>
+                          {subtask.details && (
+                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                              <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans">
+                                {subtask.details}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-3 mt-6 pt-6 border-t border-blue-200">
+              <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md transition-colors">
+                Start Working
+              </button>
+              <button className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-lg border border-gray-300 transition-colors">
+                View All Tasks
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200 rounded-2xl p-12 shadow-lg text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">All tasks completed! 🎉</h2>
+            <p className="text-gray-600 text-lg">Great job staying on top of your work. Time to celebrate or start planning your next milestone!</p>
+          </div>
+        )}
+
       </div>
     </div>
   );

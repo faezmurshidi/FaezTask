@@ -20,9 +20,33 @@ Faez PM is a personal software project management desktop application built with
 - `npm run start` - Start Next.js production server
 
 ### Task Management Integration
-- `task-master list --status=pending` - List pending tasks
-- `task-master next` - Get next recommended task to work on
-- `task-master set-status --id=X --status=Y` - Update task status (pending/in-progress/done)
+The application includes an integrated terminal with Task-Master CLI support. Use these commands for project management:
+
+#### Core Task Commands
+- `tm list` - List all tasks in current project
+- `tm next` - Get next recommended task to work on
+- `tm show <id>` - Display detailed task information
+- `tm set-status --id=<id> --status=<status>` - Update task status (pending/in-progress/done)
+
+#### Project Setup
+- `tm init` - Initialize new Task-Master project
+- `tm models --setup` - Configure AI models (first time setup)
+- `tm parse-prd --input=<file>` - Generate tasks from PRD document
+
+#### Advanced Features
+- `tm expand --id=<id>` - Break down complex tasks into subtasks
+- `tm research "<query>"` - AI-powered research with project context
+- `tm add-task --prompt="<description>"` - Add new tasks using AI assistance
+
+#### Status Management
+- `pending` - Task not yet started
+- `in-progress` - Currently working on task
+- `done` - Task completed
+- `review` - Task ready for review
+- `deferred` - Task postponed
+- `cancelled` - Task cancelled
+
+Use `tm -h` for complete command reference. The integrated terminal automatically syncs with your current project directory.
 
 ## Architecture Overview
 
@@ -32,6 +56,7 @@ Faez PM is a personal software project management desktop application built with
 - **Data Fetching**: SWR for caching and state management
 - **File Operations**: Node.js fs module through Electron main process
 - **Project Management**: Integration with task-master CLI system
+- **Terminal Integration**: Native xterm.js + node-pty terminal with Task-Master CLI integration
 
 ### Key Architectural Patterns
 
@@ -66,6 +91,15 @@ The application is built to integrate with the task-master CLI system:
 - Progress tracking through task-master commands
 - PRD processing for automated project setup
 
+#### Integrated Terminal System
+The application features a native terminal implementation with enhanced Task-Master support:
+- **Terminal Backend**: Node-pty for true pseudo-terminal functionality
+- **Terminal Frontend**: Xterm.js with VS Code-inspired theming
+- **Claude Code Integration**: Beautiful ASCII welcome with task-master commands
+- **Auto-context**: Terminal automatically uses current project directory
+- **Real-time Sync**: Task updates reflect in Kanban board immediately
+- **Security**: Secure IPC communication with context isolation
+
 #### File System Organization
 ```
 src/
@@ -83,6 +117,8 @@ The application is in MVP development phase with core project management functio
 - ✅ Multi-project tab interface
 - ✅ Project list and detail views
 - ✅ SWR data fetching with Electron API integration
+- ✅ Integrated terminal with xterm.js + node-pty
+- ✅ Task-Master CLI integration with beautiful ASCII welcome
 - 🏗️ PRD upload and processing (currently in progress)
 
 Use `task-master next` to see the current recommended task for development priorities.
