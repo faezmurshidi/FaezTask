@@ -775,6 +775,144 @@ ipcMain.handle('git-analyze-commits', async (event, repoPath, options = {}) => {
   }
 });
 
+// Branch Management handlers
+ipcMain.handle('git-list-branches', async (event, repoPath, options = {}) => {
+  try {
+    const git = simpleGit(repoPath);
+    
+    const branchSummary = await git.branch(
+      options.includeAll ? ['-a'] : 
+      options.includeRemote ? ['-r'] : []
+    );
+
+    const branches = Object.entries(branchSummary.branches).map(([name, info]) => ({
+      name: name.replace('remotes/', ''),
+      current: info.current,
+      commit: info.commit,
+      tracking: info.tracking || undefined,
+      ahead: info.ahead || undefined,
+      behind: info.behind || undefined,
+      isRemote: name.startsWith('remotes/'),
+    }));
+
+    return { success: true, branches };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('git-create-branch', async (event, repoPath, name, startPoint) => {
+  try {
+    const git = simpleGit(repoPath);
+    
+    if (startPoint) {
+      await git.checkoutBranch(name, startPoint);
+    } else {
+      await git.checkoutLocalBranch(name);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('git-switch-branch', async (event, repoPath, name) => {
+  try {
+    const git = simpleGit(repoPath);
+    await git.checkout(name);
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('git-delete-branch', async (event, repoPath, name, force = false) => {
+  try {
+    const git = simpleGit(repoPath);
+    await git.deleteLocalBranch(name, force);
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('git-set-upstream', async (event, repoPath, branch, remote = 'origin', remoteBranch) => {
+  try {
+    const git = simpleGit(repoPath);
+    
+    const currentBranch = branch || (await git.branch()).current;
+    if (!currentBranch) {
+      return { success: false, error: 'No current branch found' };
+    }
+    
+    const upstream = remoteBranch || currentBranch;
+    await git.branch(['-u', `${remote}/${upstream}`, currentBranch]);
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('git-branch-info', async (event, repoPath, branchName) => {
+  try {
+    const git = simpleGit(repoPath);
+    
+    const branches = await git.branch();
+    const targetBranch = branchName || branches.current;
+    
+    if (!targetBranch) {
+      return { success: false, error: 'No branch specified and no current branch found' };
+    }
+
+    const branchData = branches.branches[targetBranch];
+    if (!branchData) {
+      return { success: false, error: `Branch '${targetBranch}' not found` };
+    }
+
+    // Get the last commit for this branch
+    const log = await git.log({ from: targetBranch, maxCount: 1 });
+    const lastCommit = log.latest;
+
+    return {
+      success: true,
+      branchInfo: {
+        name: targetBranch,
+        commit: branchData.commit,
+        tracking: branchData.tracking || undefined,
+        ahead: branchData.ahead || undefined,
+        behind: branchData.behind || undefined,
+        lastCommit: lastCommit ? {
+          hash: lastCommit.hash,
+          message: lastCommit.message,
+          author: lastCommit.author_name,
+          date: lastCommit.date,
+        } : undefined,
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
 // PRD Processing handlers
 ipcMain.handle('process-prd-upload', async (event, { fileContent, fileName, projectName, baseProjectsPath }) => {
   try {
@@ -1345,6 +1483,397 @@ ipcMain.handle('executeCommand', async (event, command, cwd = process.cwd()) => 
       stdout: error.stdout || '',
       stderr: error.stderr || '',
       code: error.code || -1
+    };
+  }
+});
+
+// GitHub CLI Integration handlers
+// Using executeCommand infrastructure instead of importing TypeScript GitService
+
+// GitHub CLI availability check
+ipcMain.handle('github-cli-available', async (event, repoPath) => {
+  try {
+    console.log('Checking GitHub CLI availability...');
+    
+    // Check if gh command exists
+    const whichResult = await execAsync('which gh', { 
+      cwd: repoPath || process.cwd(),
+      timeout: 10000 
+    });
+    
+    if (!whichResult.stdout.trim()) {
+      return { 
+        success: true, 
+        available: false, 
+        error: 'GitHub CLI not found' 
+      };
+    }
+    
+    // Get version information
+    const versionResult = await execAsync('gh --version', { 
+      cwd: repoPath || process.cwd(),
+      timeout: 10000 
+    });
+    
+    // Parse version from output like "gh version 2.73.0 (2025-05-19)"
+    const versionMatch = versionResult.stdout.match(/gh version ([\d.]+)/);
+    const version = versionMatch ? versionMatch[1] : 'unknown';
+    
+    return {
+      success: true,
+      available: true,
+      version,
+      path: whichResult.stdout.trim()
+    };
+    
+  } catch (error) {
+    console.error('GitHub CLI availability check failed:', error);
+    return { 
+      success: true, 
+      available: false, 
+      error: error.message 
+    };
+  }
+});
+
+// GitHub CLI authentication status
+ipcMain.handle('github-auth-status', async (event, repoPath) => {
+  try {
+    console.log('Checking GitHub authentication status...');
+    
+    const authResult = await execAsync('gh auth status', { 
+      cwd: repoPath || process.cwd(),
+      timeout: 10000 
+    });
+    
+    // Parse authentication info from stderr (gh auth status outputs to stderr)
+    const output = authResult.stderr || authResult.stdout;
+    
+    if (output.includes('You are not logged into any GitHub hosts')) {
+      return {
+        success: true,
+        authenticated: false,
+        error: 'Not authenticated with GitHub CLI'
+      };
+    }
+    
+    // Parse user information
+    const userMatch = output.match(/account (\w+)/);
+    const username = userMatch ? userMatch[1] : null;
+    
+    // Parse protocol
+    const protocolMatch = output.match(/Git operations protocol: (\w+)/);
+    const protocol = protocolMatch ? protocolMatch[1] : 'unknown';
+    
+    // Parse scopes
+    const scopesMatch = output.match(/Token scopes: '([^']+)'/);
+    const scopes = scopesMatch ? scopesMatch[1].split("', '").map(s => s.replace(/'/g, '')) : [];
+    
+    return {
+      success: true,
+      authenticated: true,
+      username,
+      protocol,
+      scopes
+    };
+    
+  } catch (error) {
+    console.error('GitHub auth status check failed:', error);
+    return { 
+      success: true, 
+      authenticated: false, 
+      error: error.message 
+    };
+  }
+});
+
+// Execute GitHub CLI command
+ipcMain.handle('github-cli-command', async (event, repoPath, command, args = []) => {
+  try {
+    console.log(`Executing GitHub CLI command: gh ${command} ${args.join(' ')}`);
+    
+    // Build the full command
+    const fullCommand = `gh ${command} ${args.join(' ')}`;
+    
+    const result = await execAsync(fullCommand, { 
+      cwd: repoPath || process.cwd(),
+      timeout: 30000 
+    });
+    
+    return {
+      success: true,
+      stdout: result.stdout,
+      stderr: result.stderr
+    };
+    
+  } catch (error) {
+    console.error('GitHub CLI command execution failed:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      stdout: error.stdout || '',
+      stderr: error.stderr || ''
+    };
+  }
+});
+
+// Get GitHub repository information
+ipcMain.handle('github-repo-info', async (event, repoPath) => {
+  try {
+    console.log('Getting GitHub repository information...');
+    
+    const result = await execAsync('gh repo view --json nameWithOwner,owner,name,url,isPrivate', { 
+      cwd: repoPath || process.cwd(),
+      timeout: 15000 
+    });
+    
+    const repoInfo = JSON.parse(result.stdout);
+    
+    return {
+      success: true,
+      repoInfo: {
+        fullName: repoInfo.nameWithOwner,
+        owner: repoInfo.owner.login,
+        name: repoInfo.name,
+        url: repoInfo.url,
+        isPrivate: repoInfo.isPrivate
+      }
+    };
+    
+  } catch (error) {
+    console.error('GitHub repo info check failed:', error);
+    return { 
+      success: false, 
+      error: error.message 
+    };
+  }
+});
+
+// Check if directory is a GitHub repository
+ipcMain.handle('github-is-repo', async (event, repoPath) => {
+  try {
+    console.log('Checking if directory is a GitHub repository...');
+    
+    // First check if it's a git repository
+    const gitCheckResult = await execAsync('git rev-parse --is-inside-work-tree', { 
+      cwd: repoPath || process.cwd(),
+      timeout: 10000 
+    });
+    
+    if (gitCheckResult.stdout.trim() !== 'true') {
+      return {
+        success: true,
+        isGitHubRepo: false,
+        error: 'Not a git repository'
+      };
+    }
+    
+    // Check if it has a GitHub remote
+    const remoteResult = await execAsync('git remote -v', { 
+      cwd: repoPath || process.cwd(),
+      timeout: 10000 
+    });
+    
+    const hasGitHubRemote = remoteResult.stdout.includes('github.com');
+    
+    if (!hasGitHubRemote) {
+      return {
+        success: true,
+        isGitHubRepo: false,
+        error: 'No GitHub remote found'
+      };
+    }
+    
+    // Try to get repository information
+    try {
+      const repoInfoResult = await execAsync('gh repo view --json nameWithOwner,owner,name,url,isPrivate', { 
+        cwd: repoPath || process.cwd(),
+        timeout: 15000 
+      });
+      
+      const repoInfo = JSON.parse(repoInfoResult.stdout);
+      
+      return {
+        success: true,
+        isGitHubRepo: true,
+        repoInfo: {
+          fullName: repoInfo.nameWithOwner,
+          owner: repoInfo.owner.login,
+          name: repoInfo.name,
+          url: repoInfo.url,
+          isPrivate: repoInfo.isPrivate
+        }
+      };
+      
+    } catch (repoError) {
+      return {
+        success: true,
+        isGitHubRepo: true,
+        error: 'GitHub repository detected but could not fetch details'
+      };
+    }
+    
+  } catch (error) {
+    console.error('GitHub repository check failed:', error);
+    return { 
+      success: false, 
+      error: error.message 
+    };
+  }
+});
+
+// Create GitHub repository
+ipcMain.handle('github-create-repo', async (event, repoPath, options) => {
+  try {
+    console.log('Creating GitHub repository with options:', options);
+    
+    const { 
+      name, 
+      description = '', 
+      isPrivate = false, 
+      initializeWithReadme = true,
+      addGitIgnore = '',
+      license = '' 
+    } = options;
+    
+    // Validate required parameters
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      throw new Error('Repository name is required');
+    }
+    
+    // Build gh repo create command
+    const args = ['repo', 'create', name];
+    
+    // Add description if provided
+    if (description.trim()) {
+      args.push('--description', description.trim());
+    }
+    
+    // Set visibility
+    if (isPrivate) {
+      args.push('--private');
+    } else {
+      args.push('--public');
+    }
+    
+    // Initialize with README
+    if (initializeWithReadme) {
+      args.push('--add-readme');
+    }
+    
+    // Add .gitignore if specified
+    if (addGitIgnore.trim()) {
+      args.push('--gitignore', addGitIgnore.trim());
+    }
+    
+    // Add license if specified
+    if (license.trim()) {
+      args.push('--license', license.trim());
+    }
+    
+    // Clone the repository locally
+    args.push('--clone');
+    
+    console.log('Executing gh command:', 'gh', args.join(' '));
+    
+    // Execute the repository creation command
+    const createResult = await execAsync(`gh ${args.join(' ')}`, { 
+      cwd: repoPath || process.cwd(),
+      timeout: 60000 // 60 seconds for repository creation
+    });
+    
+    // Parse the output to get repository URL
+    const output = createResult.stdout + createResult.stderr;
+    const urlMatch = output.match(/https:\/\/github\.com\/[^\s]+/);
+    const repositoryUrl = urlMatch ? urlMatch[0] : null;
+    
+    // Get repository information after creation
+    const repoInfoResult = await execAsync(`gh repo view ${name} --json nameWithOwner,owner,name,url,isPrivate,description`, { 
+      cwd: repoPath || process.cwd(),
+      timeout: 15000 
+    });
+    
+    const repoInfo = JSON.parse(repoInfoResult.stdout);
+    
+    return {
+      success: true,
+      repository: {
+        name: repoInfo.name,
+        fullName: repoInfo.nameWithOwner,
+        owner: repoInfo.owner.login,
+        url: repoInfo.url,
+        description: repoInfo.description,
+        isPrivate: repoInfo.isPrivate,
+        cloneUrl: `https://github.com/${repoInfo.nameWithOwner}.git`,
+        sshUrl: `git@github.com:${repoInfo.nameWithOwner}.git`
+      },
+      message: `Repository '${name}' created successfully and cloned locally`,
+      localPath: `${repoPath || process.cwd()}/${name}`
+    };
+    
+  } catch (error) {
+    console.error('GitHub repository creation failed:', error);
+    
+    // Parse specific error messages
+    let errorMessage = error.message;
+    let errorType = 'general';
+    
+    if (error.message.includes('already exists')) {
+      errorMessage = 'A repository with this name already exists';
+      errorType = 'name_conflict';
+    } else if (error.message.includes('authentication')) {
+      errorMessage = 'GitHub authentication required. Please run "gh auth login"';
+      errorType = 'authentication';
+    } else if (error.message.includes('rate limit')) {
+      errorMessage = 'GitHub API rate limit exceeded. Please try again later';
+      errorType = 'rate_limit';
+    } else if (error.message.includes('permission')) {
+      errorMessage = 'Insufficient permissions to create repository';
+      errorType = 'permission';
+    }
+    
+    return { 
+      success: false, 
+      error: errorMessage,
+      errorType,
+      stdout: error.stdout || '',
+      stderr: error.stderr || ''
+    };
+  }
+});
+
+// Check repository name availability
+ipcMain.handle('github-check-repo-name', async (event, repoName, username) => {
+  try {
+    console.log(`Checking availability of repository name: ${username}/${repoName}`);
+    
+    // Try to view the repository - if it exists, this will succeed
+    const checkResult = await execAsync(`gh repo view ${username}/${repoName} --json name`, { 
+      timeout: 10000 
+    });
+    
+    // If we get here, the repository exists
+    return {
+      success: true,
+      available: false,
+      message: `Repository '${username}/${repoName}' already exists`
+    };
+    
+  } catch (error) {
+    // If the command fails, the repository likely doesn't exist
+    if (error.message.includes('not found') || error.message.includes('Could not resolve')) {
+      return {
+        success: true,
+        available: true,
+        message: `Repository name '${repoName}' is available`
+      };
+    }
+    
+    // Other errors (authentication, network, etc.)
+    return {
+      success: false,
+      error: error.message,
+      available: false
     };
   }
 });

@@ -42,6 +42,61 @@ declare global {
       gitGetFileStatus: (repoPath: string) => Promise<any>;
       gitAnalyzeCommits: (repoPath: string, options?: any) => Promise<any>;
       
+      // Branch Management
+      gitListBranches: (repoPath: string, options?: { 
+        includeRemote?: boolean; 
+        includeAll?: boolean; 
+      }) => Promise<{
+        success: boolean;
+        branches?: Array<{
+          name: string;
+          current: boolean;
+          commit: string;
+          tracking?: string;
+          ahead?: number;
+          behind?: number;
+          isRemote: boolean;
+        }>;
+        error?: string;
+      }>;
+      gitCreateBranch: (repoPath: string, name: string, startPoint?: string) => Promise<{ success: boolean; error?: string }>;
+      gitSwitchBranch: (repoPath: string, name: string) => Promise<{ success: boolean; error?: string }>;
+      gitDeleteBranch: (repoPath: string, name: string, force?: boolean) => Promise<{ success: boolean; error?: string }>;
+      gitSetUpstream: (repoPath: string, branch?: string, remote?: string, remoteBranch?: string) => Promise<{ success: boolean; error?: string }>;
+      gitBranchInfo: (repoPath: string, branchName?: string) => Promise<{
+        success: boolean;
+        branchInfo?: {
+          name: string;
+          commit: string;
+          tracking?: string;
+          ahead?: number;
+          behind?: number;
+          lastCommit?: {
+            hash: string;
+            message: string;
+            author: string;
+            date: string;
+          };
+        };
+        error?: string;
+      }>;
+      
+      // GitHub CLI Integration
+      githubCliAvailable: (repoPath: string) => Promise<{ success: boolean; available?: boolean; version?: string; path?: string; error?: string }>;
+      githubAuthStatus: (repoPath: string) => Promise<{ success: boolean; authenticated?: boolean; username?: string; scopes?: string[]; protocol?: string; error?: string }>;
+      githubCliCommand: (repoPath: string, command: string, args?: string[]) => Promise<{ success: boolean; stdout?: string; stderr?: string; error?: string }>;
+      githubRepoInfo: (repoPath: string) => Promise<{ success: boolean; isGitHubRepo?: boolean; repoInfo?: any; error?: string }>;
+      githubIsRepo: (repoPath: string) => Promise<{ success: boolean; isGitHubRepo?: boolean; error?: string }>;
+      githubCreateRepo: (repoPath: string, options: {
+        name: string;
+        description?: string;
+        isPrivate?: boolean;
+        initializeWithReadme?: boolean;
+        addGitIgnore?: string;
+        license?: string;
+      }) => Promise<{ success: boolean; repository?: any; message?: string; localPath?: string; error?: string; errorType?: string }>;
+      githubCheckRepoName: (repoName: string, username: string) => Promise<{ success: boolean; available?: boolean; message?: string; error?: string }>;
+      
       // Simple PTY API - following proven pattern
       spawnPty: (options: { cols?: number; rows?: number }) => void;
       onPtyData: (callback: (data: string) => void) => void;

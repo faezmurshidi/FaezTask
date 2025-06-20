@@ -47,6 +47,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   gitGetFileStatus: (repoPath) => ipcRenderer.invoke('git-get-file-status', repoPath),
   gitAnalyzeCommits: (repoPath, options) => ipcRenderer.invoke('git-analyze-commits', repoPath, options),
   
+  // Branch Management
+  gitListBranches: (repoPath, options) => ipcRenderer.invoke('git-list-branches', repoPath, options),
+  gitCreateBranch: (repoPath, name, startPoint) => ipcRenderer.invoke('git-create-branch', repoPath, name, startPoint),
+  gitSwitchBranch: (repoPath, name) => ipcRenderer.invoke('git-switch-branch', repoPath, name),
+  gitDeleteBranch: (repoPath, name, force) => ipcRenderer.invoke('git-delete-branch', repoPath, name, force),
+  gitSetUpstream: (repoPath, branch, remote, remoteBranch) => ipcRenderer.invoke('git-set-upstream', repoPath, branch, remote, remoteBranch),
+  gitBranchInfo: (repoPath, branchName) => ipcRenderer.invoke('git-branch-info', repoPath, branchName),
+  
+  // GitHub CLI Integration
+  githubCliAvailable: (repoPath) => ipcRenderer.invoke('github-cli-available', repoPath),
+  githubAuthStatus: (repoPath) => ipcRenderer.invoke('github-auth-status', repoPath),
+  githubCliCommand: (repoPath, command, args) => ipcRenderer.invoke('github-cli-command', repoPath, command, args),
+  githubRepoInfo: (repoPath) => ipcRenderer.invoke('github-repo-info', repoPath),
+  githubIsRepo: (repoPath) => ipcRenderer.invoke('github-is-repo', repoPath),
+  githubCreateRepo: (repoPath, options) => ipcRenderer.invoke('github-create-repo', repoPath, options),
+  githubCheckRepoName: (repoName, username) => ipcRenderer.invoke('github-check-repo-name', repoName, username),
+  
   // Terminal API using node-pty for proper pseudo-terminal support
   terminal: {
     create: (options) => ipcRenderer.invoke('terminal-create', options),

@@ -306,6 +306,185 @@ export class GitService {
   }
 
   /**
+   * List all branches with detailed information
+   */
+  async listBranches(options: { 
+    includeRemote?: boolean; 
+    includeAll?: boolean; 
+  } = {}): Promise<{
+    success: boolean;
+    branches?: Array<{
+      name: string;
+      current: boolean;
+      commit: string;
+      tracking?: string;
+      ahead?: number;
+      behind?: number;
+      isRemote: boolean;
+    }>;
+    error?: string;
+  }> {
+    try {
+      const branchSummary = await this.git.branch(
+        options.includeAll ? ['-a'] : 
+        options.includeRemote ? ['-r'] : []
+      );
+
+      const branches = Object.entries(branchSummary.branches).map(([name, info]) => ({
+        name: name.replace('remotes/', ''),
+        current: info.current,
+        commit: info.commit,
+        tracking: (info as any).tracking || undefined,
+        ahead: (info as any).ahead || undefined,
+        behind: (info as any).behind || undefined,
+        isRemote: name.startsWith('remotes/'),
+      }));
+
+      return { success: true, branches };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to list branches'
+      };
+    }
+  }
+
+  /**
+   * Create a new branch
+   */
+  async createBranch(name: string, startPoint?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (startPoint) {
+        await this.git.checkoutBranch(name, startPoint);
+      } else {
+        await this.git.checkoutLocalBranch(name);
+      }
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create branch'
+      };
+    }
+  }
+
+  /**
+   * Switch to an existing branch
+   */
+  async switchBranch(name: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.checkout(name);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to switch branch'
+      };
+    }
+  }
+
+  /**
+   * Delete a branch
+   */
+  async deleteBranch(name: string, force: boolean = false): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.git.deleteLocalBranch(name, force);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete branch'
+      };
+    }
+  }
+
+  /**
+   * Set upstream branch for current or specified branch
+   */
+  async setUpstreamBranch(
+    branch?: string, 
+    remote: string = 'origin', 
+    remoteBranch?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const currentBranch = branch || (await this.git.branch()).current;
+      if (!currentBranch) {
+        return { success: false, error: 'No current branch found' };
+      }
+      
+      const upstream = remoteBranch || currentBranch;
+      await this.git.branch(['-u', `${remote}/${upstream}`, currentBranch]);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to set upstream branch'
+      };
+    }
+  }
+
+  /**
+   * Get detailed information about a specific branch
+   */
+  async getBranchInfo(branchName?: string): Promise<{
+    success: boolean;
+    branchInfo?: {
+      name: string;
+      commit: string;
+      tracking?: string;
+      ahead?: number;
+      behind?: number;
+      lastCommit?: {
+        hash: string;
+        message: string;
+        author: string;
+        date: string;
+      };
+    };
+    error?: string;
+  }> {
+    try {
+      const branches = await this.git.branch();
+      const targetBranch = branchName || branches.current;
+      
+      if (!targetBranch) {
+        return { success: false, error: 'No branch specified and no current branch found' };
+      }
+
+      const branchData = branches.branches[targetBranch];
+      if (!branchData) {
+        return { success: false, error: `Branch '${targetBranch}' not found` };
+      }
+
+      // Get the last commit for this branch
+      const log = await this.git.log({ from: targetBranch, maxCount: 1 });
+      const lastCommit = log.latest;
+
+      return {
+        success: true,
+        branchInfo: {
+          name: targetBranch,
+          commit: branchData.commit,
+          tracking: (branchData as any).tracking || undefined,
+          ahead: (branchData as any).ahead || undefined,
+          behind: (branchData as any).behind || undefined,
+          lastCommit: lastCommit ? {
+            hash: lastCommit.hash,
+            message: lastCommit.message,
+            author: lastCommit.author_name,
+            date: lastCommit.date,
+          } : undefined,
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get branch information'
+      };
+    }
+  }
+
+  /**
    * Analyze commit history and extract comprehensive metadata
    */
   async analyzeCommits(options: {
@@ -623,6 +802,223 @@ export class GitService {
         totalLinesAdded: 0,
         totalLinesDeleted: 0
       }
+    };
+  }
+
+  // GitHub CLI Integration Methods
+  
+  /**
+   * Check if GitHub CLI is installed and available
+   */
+  async isGitHubCliAvailable(): Promise<{ available: boolean; version?: string; path?: string }> {
+    try {
+      // Use Node.js to check if gh command exists
+      const { execSync } = require('child_process');
+      
+      // Check if gh is available
+      const whichResult = execSync('which gh', { encoding: 'utf8' }).trim();
+      const versionResult = execSync('gh --version', { encoding: 'utf8' });
+      
+      // Parse version from output like "gh version 2.73.0 (2025-05-19)"
+      const versionMatch = versionResult.match(/gh version ([\d.]+)/);
+      const version = versionMatch ? versionMatch[1] : 'unknown';
+      
+      return {
+        available: true,
+        version,
+        path: whichResult
+      };
+    } catch (error) {
+      return {
+        available: false
+      };
+    }
+  }
+
+  /**
+   * Check GitHub CLI authentication status
+   */
+  async getGitHubAuthStatus(): Promise<{
+    authenticated: boolean;
+    username?: string;
+    scopes?: string[];
+    protocol?: string;
+    error?: string;
+  }> {
+    try {
+      const { execSync } = require('child_process');
+      
+      const authResult = execSync('gh auth status', { 
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'] // Capture both stdout and stderr
+      });
+      
+      // Parse the auth status output
+      const lines = authResult.split('\n');
+      let username: string | undefined;
+      let protocol: string | undefined;
+      let scopes: string[] = [];
+      
+      for (const line of lines) {
+        if (line.includes('Logged in to github.com account')) {
+          const usernameMatch = line.match(/account (\w+)/);
+          username = usernameMatch ? usernameMatch[1] : undefined;
+        } else if (line.includes('Git operations protocol:')) {
+          const protocolMatch = line.match(/protocol: (\w+)/);
+          protocol = protocolMatch ? protocolMatch[1] : undefined;
+        } else if (line.includes('Token scopes:')) {
+          const scopesMatch = line.match(/Token scopes: '([^']+)'/);
+          if (scopesMatch) {
+            scopes = scopesMatch[1].split("', '").map((s: string) => s.replace(/'/g, ''));
+          }
+        }
+      }
+      
+      return {
+        authenticated: true,
+        username,
+        protocol,
+        scopes
+      };
+    } catch (error) {
+      // If command fails, user is likely not authenticated
+      return {
+        authenticated: false,
+        error: error instanceof Error ? error.message : 'Authentication check failed'
+      };
+    }
+  }
+
+  /**
+   * Execute a GitHub CLI command safely
+   */
+  async executeGitHubCliCommand(command: string, args: string[] = []): Promise<{
+    success: boolean;
+    output?: string;
+    error?: string;
+  }> {
+    try {
+      // Validate that GitHub CLI is available
+      const cliStatus = await this.isGitHubCliAvailable();
+      if (!cliStatus.available) {
+        return {
+          success: false,
+          error: 'GitHub CLI is not installed or not available in PATH'
+        };
+      }
+
+      // Validate authentication
+      const authStatus = await this.getGitHubAuthStatus();
+      if (!authStatus.authenticated) {
+        return {
+          success: false,
+          error: 'GitHub CLI is not authenticated. Please run "gh auth login" first.'
+        };
+      }
+
+      const { execSync } = require('child_process');
+      
+      // Construct the full command
+      const fullCommand = ['gh', command, ...args].join(' ');
+      
+      // Execute the command with proper error handling
+      const output = execSync(fullCommand, {
+        encoding: 'utf8',
+        cwd: this.repoPath,
+        timeout: 30000 // 30-second timeout
+      });
+      
+      return {
+        success: true,
+        output: output.trim()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'GitHub CLI command failed'
+      };
+    }
+  }
+
+  /**
+   * Get repository information from GitHub
+   */
+  async getGitHubRepoInfo(): Promise<{
+    success: boolean;
+    owner?: string;
+    name?: string;
+    fullName?: string;
+    url?: string;
+    isPrivate?: boolean;
+    error?: string;
+  }> {
+    const result = await this.executeGitHubCliCommand('repo', ['view', '--json', 'owner,name,nameWithOwner,url,isPrivate']);
+    
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    try {
+      const repoData = JSON.parse(result.output || '{}');
+      
+      return {
+        success: true,
+        owner: repoData.owner?.login,
+        name: repoData.name,
+        fullName: repoData.nameWithOwner,
+        url: repoData.url,
+        isPrivate: repoData.isPrivate
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to parse repository information'
+      };
+    }
+  }
+
+  /**
+   * Check if current directory is a GitHub repository
+   */
+  async isGitHubRepository(): Promise<{
+    isGitHubRepo: boolean;
+    repoInfo?: {
+      owner: string;
+      name: string;
+      fullName: string;
+      url: string;
+      isPrivate: boolean;
+    };
+    error?: string;
+  }> {
+    // First check if it's a git repository
+    const isGitRepo = await this.isGitRepository();
+    if (!isGitRepo) {
+      return {
+        isGitHubRepo: false,
+        error: 'Not a git repository'
+      };
+    }
+
+    // Check if it has a GitHub remote
+    const repoResult = await this.getGitHubRepoInfo();
+    
+    if (repoResult.success && repoResult.owner && repoResult.name) {
+      return {
+        isGitHubRepo: true,
+        repoInfo: {
+          owner: repoResult.owner,
+          name: repoResult.name,
+          fullName: repoResult.fullName || `${repoResult.owner}/${repoResult.name}`,
+          url: repoResult.url || `https://github.com/${repoResult.owner}/${repoResult.name}`,
+          isPrivate: repoResult.isPrivate || false
+        }
+      };
+    }
+
+    return {
+      isGitHubRepo: false,
+      error: repoResult.error || 'Not connected to a GitHub repository'
     };
   }
 } 

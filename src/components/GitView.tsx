@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { GitStatus } from '@/types';
 import { electronAPI } from '@/lib/electronAPI';
 import GitCommitAnalysis from './GitCommitAnalysis';
+import { GitHubStatus } from './GitHubStatus';
+import BranchManager from './BranchManager';
 
 interface FileStatus {
   path: string;
@@ -23,7 +25,7 @@ export default function GitView() {
   const [pushError, setPushError] = useState<string | null>(null);
   const [needsUpstream, setNeedsUpstream] = useState(false);
   const [needsPull, setNeedsPull] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'analysis'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'analysis' | 'branches' | 'github'>('status');
 
   // Use current project path - in a real app this would come from context
   const projectPath = '/Users/faez/Documents/FaezPM';
@@ -415,6 +417,26 @@ export default function GitView() {
           >
             Commit Analysis
           </button>
+          <button
+            onClick={() => setActiveTab('branches')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'branches'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Branches
+          </button>
+          <button
+            onClick={() => setActiveTab('github')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'github'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            GitHub CLI
+          </button>
         </nav>
       </div>
 
@@ -742,6 +764,16 @@ export default function GitView() {
 
       {activeTab === 'analysis' && (
         <GitCommitAnalysis projectPath={projectPath} />
+      )}
+
+      {activeTab === 'branches' && (
+        <BranchManager projectPath={projectPath} />
+      )}
+
+      {activeTab === 'github' && (
+        <div className="p-6">
+          <GitHubStatus projectPath={projectPath} />
+        </div>
       )}
     </div>
   );
