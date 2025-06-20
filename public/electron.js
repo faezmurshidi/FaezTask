@@ -1313,6 +1313,42 @@ ipcMain.handle('taskmaster-stop-file-watching', async () => {
   }
 });
 
+// Execute command for task-master CLI integration
+ipcMain.handle('executeCommand', async (event, command, cwd = process.cwd()) => {
+  try {
+    console.log(`Executing command: ${command} in directory: ${cwd}`);
+    
+    const { stdout, stderr } = await execAsync(command, {
+      cwd,
+      env: {
+        ...process.env,
+        PATH: process.env.PATH
+      },
+      timeout: 30000 // 30 second timeout
+    });
+    
+    const result = {
+      success: true,
+      stdout: stdout.trim(),
+      stderr: stderr.trim()
+    };
+    
+    console.log(`Command executed successfully:`, result);
+    return result;
+    
+  } catch (error) {
+    console.error(`Command execution failed:`, error);
+    
+    return {
+      success: false,
+      error: error.message,
+      stdout: error.stdout || '',
+      stderr: error.stderr || '',
+      code: error.code || -1
+    };
+  }
+});
+
 // Terminal functionality using node-pty for proper pseudo-terminal support
 const pty = require('node-pty');
 

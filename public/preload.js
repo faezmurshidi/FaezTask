@@ -22,6 +22,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // PRD Processing
   processPRDUpload: (data) => ipcRenderer.invoke('process-prd-upload', data),
   
+  // Command execution for task-master CLI
+  executeCommand: (command, cwd) => ipcRenderer.invoke('executeCommand', command, cwd),
+  
   // File watching
   startFileWatching: (filePath) => ipcRenderer.invoke('taskmaster-start-file-watching', filePath),
   stopFileWatching: () => ipcRenderer.invoke('taskmaster-stop-file-watching'),

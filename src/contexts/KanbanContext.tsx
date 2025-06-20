@@ -190,34 +190,7 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
     }
   }, [isElectron]);
 
-  // Update task - simplified for now, just optimistic update
-  const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
-    if (!isElectron) {
-      // Mock implementation for web development
-      console.log('Mock: Updated task', taskId, updates);
-      dispatch({ type: 'UPDATE_TASK', payload: { taskId, updates } });
-      return;
-    }
-
-    try {
-      // For now, just do optimistic update
-      // TODO: Implement actual task-master CLI integration for updates
-      dispatch({ type: 'UPDATE_TASK', payload: { taskId, updates } });
-      console.log(`Task ${taskId} updated (optimistic update only)`);
-      
-      // Note: To fully implement this, we would need to:
-      // 1. Read the current tasks.json file
-      // 2. Update the specific task
-      // 3. Write back to tasks.json file
-      // OR integrate with task-master CLI commands like `tm update-task`
-      
-    } catch (error) {
-      console.error('Error updating task:', error);
-      dispatch({ type: 'SET_ERROR', payload: 'Failed to update task' });
-    }
-  }, [isElectron]);
-
-  // Move task between columns - simplified for now, just optimistic update
+  // Move task between columns - implement actual CLI integration
   const moveTask = useCallback(async (taskId: string, newStatus: TaskStatus) => {
     if (!isElectron) {
       // Mock implementation for web development
@@ -231,25 +204,92 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
       const currentTask = state.tasks.find(task => task.id === taskId);
       const previousStatus = currentTask?.status;
       
+      if (!currentTask) {
+        throw new Error(`Task ${taskId} not found`);
+      }
+
       // Optimistic update
       dispatch({ type: 'MOVE_TASK', payload: { taskId, newStatus, previousStatus } });
-      console.log(`Task ${taskId} moved to ${newStatus} (optimistic update only)`);
+      console.log(`Task ${taskId} moved to ${newStatus} (optimistic update)`);
       
-      // TODO: Implement actual task-master CLI integration for status updates
-      // For now, we just do the optimistic update without backend persistence
+      // Execute task-master CLI command to persist the change
+      const result = await (window as any).electronAPI.executeCommand(
+        `task-master set-status --id=${taskId} --status=${newStatus}`,
+        projectPath || '/Users/faez/Documents/FaezPM'
+      );
+      
+      if (!result.success) {
+        // Rollback on failure
+        if (previousStatus) {
+          dispatch({ type: 'ROLLBACK_TASK', payload: { taskId, status: previousStatus } });
+        }
+        throw new Error(result.error || 'Failed to update task status via CLI');
+      }
+      
+      console.log(`✅ Task ${taskId} status successfully updated to ${newStatus} via CLI`);
       
     } catch (error) {
       console.error('Error moving task:', error);
+      
+      // Rollback optimistic update on error
+      if (state.tasks.find(task => task.id === taskId)?.status !== newStatus) {
+        const originalTask = state.tasks.find(task => task.id === taskId);
+        if (originalTask) {
+          dispatch({ type: 'ROLLBACK_TASK', payload: { taskId, status: originalTask.status } });
+        }
+      }
+      
       dispatch({ type: 'SET_ERROR', payload: 'Failed to move task' });
     }
-  }, [isElectron, state.tasks]);
+  }, [isElectron, state.tasks, projectPath]);
+
+  // Update task - implement actual CLI integration
+  const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
+    if (!isElectron) {
+      // Mock implementation for web development
+      console.log('Mock: Updated task', taskId, updates);
+      dispatch({ type: 'UPDATE_TASK', payload: { taskId, updates } });
+      return;
+    }
+
+    try {
+      // Optimistic update
+      dispatch({ type: 'UPDATE_TASK', payload: { taskId, updates } });
+      console.log(`Task ${taskId} updated (optimistic update)`);
+      
+      // Construct update prompt based on changes
+      const updatePrompts = [];
+      if (updates.title) updatePrompts.push(`Title updated to: ${updates.title}`);
+      if (updates.description) updatePrompts.push(`Description updated to: ${updates.description}`);
+      if (updates.priority) updatePrompts.push(`Priority changed to: ${updates.priority}`);
+      if (updates.status) updatePrompts.push(`Status changed to: ${updates.status}`);
+      
+      const updatePrompt = updatePrompts.join('\n') || 'Task details updated via UI';
+      
+      // Execute task-master CLI command to persist the changes
+      const result = await (window as any).electronAPI.executeCommand(
+        `task-master update-task --id=${taskId} --prompt="${updatePrompt}" --append`,
+        projectPath || '/Users/faez/Documents/FaezPM'
+      );
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update task via CLI');
+      }
+      
+      console.log(`✅ Task ${taskId} successfully updated via CLI`);
+      
+    } catch (error) {
+      console.error('Error updating task:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to update task' });
+    }
+  }, [isElectron, projectPath]);
 
   // Select task for detail panel
   const selectTask = useCallback((task: Task | null) => {
     dispatch({ type: 'SELECT_TASK', payload: task });
   }, []);
 
-  // Add new task - simplified for now
+  // Add new task - implement actual CLI integration
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
     if (!isElectron) {
       // Mock implementation for web development
@@ -268,27 +308,31 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
     }
 
     try {
-      // For now, create a temporary task ID and add optimistically
-      const taskWithId = { 
-        ...task, 
-        id: `temp-${Date.now()}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // Create task prompt for CLI
+      const taskPrompt = `${task.title}\n\nDescription: ${task.description}\nPriority: ${task.priority}\nEstimated hours: ${task.estimated_hours}`;
       
-      dispatch({ type: 'ADD_TASK', payload: taskWithId });
-      console.log('Added new task (optimistic, temporary ID):', taskWithId);
+      // Execute task-master CLI command to add the task
+      const result = await (window as any).electronAPI.executeCommand(
+        `task-master add-task --prompt="${taskPrompt}" --priority=${task.priority}`,
+        projectPath || '/Users/faez/Documents/FaezPM'
+      );
       
-      // TODO: Implement actual task-master CLI integration for adding tasks
-      // This would involve using task-master CLI commands like `tm add-task`
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to add task via CLI');
+      }
+      
+      console.log('✅ New task successfully added via CLI');
+      
+      // Reload tasks to get the newly created task with proper ID
+      await loadTasks(projectPath);
       
     } catch (error) {
       console.error('Error adding task:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to add task' });
     }
-  }, [isElectron]);
+  }, [isElectron, projectPath, loadTasks]);
 
-  // Delete task - simplified for now
+  // Delete task - implement actual CLI integration
   const deleteTask = useCallback(async (taskId: string) => {
     if (!isElectron) {
       // Mock implementation for web development
@@ -302,18 +346,34 @@ export function KanbanProvider({ children, projectPath = '/Users/faez/Documents/
     }
 
     try {
-      // For now, just do optimistic delete
-      dispatch({ type: 'DELETE_TASK', payload: taskId });
-      console.log(`Task ${taskId} deleted (optimistic update only)`);
+      // Store task for potential rollback
+      const taskToDelete = state.tasks.find(task => task.id === taskId);
       
-      // TODO: Implement actual task-master CLI integration for deleting tasks
-      // This would involve using task-master CLI commands like `tm remove-task`
+      // Optimistic delete
+      dispatch({ type: 'DELETE_TASK', payload: taskId });
+      console.log(`Task ${taskId} deleted (optimistic update)`);
+      
+      // Execute task-master CLI command to delete the task
+      const result = await (window as any).electronAPI.executeCommand(
+        `task-master remove-task --id=${taskId} --yes`,
+        projectPath || '/Users/faez/Documents/FaezPM'
+      );
+      
+      if (!result.success) {
+        // Rollback if delete failed
+        if (taskToDelete) {
+          dispatch({ type: 'ADD_TASK', payload: taskToDelete });
+        }
+        throw new Error(result.error || 'Failed to delete task via CLI');
+      }
+      
+      console.log(`✅ Task ${taskId} successfully deleted via CLI`);
       
     } catch (error) {
       console.error('Error deleting task:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to delete task' });
     }
-  }, [isElectron]);
+  }, [isElectron, projectPath, state.tasks]);
 
   // Auto-load tasks on mount and when projectPath changes
   useEffect(() => {

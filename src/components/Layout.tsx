@@ -1,11 +1,10 @@
 'use client';
 
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { Project } from '@/types';
 import { getProjects } from '@/lib/projectService';
 import Dashboard from './Dashboard';
-import ProjectList from './ProjectList';
 import GitView from './GitView';
 import TaskBoard from './TaskBoard';
 import FocusTerminal from './Terminal/FocusTerminal';
@@ -49,49 +48,7 @@ export default function Layout({ children }: LayoutProps) {
     if (currentView === 'projects' && selectedProject) {
       switch (projectView) {
         case 'focus':
-          return (
-            <div className="flex h-full bg-gray-50">
-              {/* Left side - Focus Component */}
-              <div className="w-1/2 min-w-0 bg-white">
-                <Focus projectPath={selectedProject.local_folder_path || '/Users/faez/Documents/FaezPM'} />
-              </div>
-              
-              {/* Right side - Terminal */}
-              <div className="w-1/2 flex flex-col border-l border-gray-200">
-                {/* Terminal Integration Hint */}
-                {showTerminalHint && (
-                  <div className="m-4 mb-2 bg-blue-50 border border-blue-200 rounded-lg p-4 relative">
-                    <button
-                      onClick={() => setShowTerminalHint(false)}
-                      className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-blue-900 mb-1">Terminal Integration</h4>
-                        <p className="text-sm text-blue-700">
-                          This terminal is integrated with Task-Master CLI. Use commands like <code className="bg-blue-100 px-1 rounded text-xs">tm next</code>, <code className="bg-blue-100 px-1 rounded text-xs">tm show &lt;id&gt;</code>, and <code className="bg-blue-100 px-1 rounded text-xs">tm set-status</code> to manage your tasks.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <FocusTerminal 
-                  className={`${showTerminalHint ? 'flex-1 m-4 mt-0' : 'h-full m-4'}`}
-                  cwd={selectedProject.local_folder_path}
-                />
-              </div>
-            </div>
-          );
+          return <Focus projectPath={selectedProject.local_folder_path || '/Users/faez/Documents/FaezPM'} />;
         case 'git':
           return <GitView />;
         case 'kanban':
@@ -316,7 +273,51 @@ export default function Layout({ children }: LayoutProps) {
         {/* Content */}
         <div className="flex-1 flex flex-col overflow-hidden pt-8" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <div className="flex-1 overflow-hidden">
-            {renderMainContent()}
+            <div className="flex h-full bg-gray-50">
+              {/* Main Content */}
+              <div className={`${currentView === 'projects' && projectView === 'focus' && selectedProject ? 'w-1/2' : 'flex-1'} min-w-0 bg-white transition-all duration-300`}>
+                {renderMainContent()}
+              </div>
+              
+              {/* Terminal - Always present but hidden when not in focus view */}
+              {selectedProject && (
+                <div className={`${currentView === 'projects' && projectView === 'focus' ? 'w-1/2' : 'w-0'} flex flex-col border-l border-gray-200 transition-all duration-300 overflow-hidden`}>
+                  {/* Terminal Integration Hint */}
+                  {showTerminalHint && currentView === 'projects' && projectView === 'focus' && (
+                    <div className="m-4 mb-2 bg-blue-50 border border-blue-200 rounded-lg p-4 relative">
+                      <button
+                        onClick={() => setShowTerminalHint(false)}
+                        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium text-blue-900 mb-1">Terminal Integration</h4>
+                          <p className="text-sm text-blue-700">
+                            This terminal is integrated with Task-Master CLI. Use commands like <code className="bg-blue-100 px-1 rounded text-xs">tm next</code>, <code className="bg-blue-100 px-1 rounded text-xs">tm show &lt;id&gt;</code>, and <code className="bg-blue-100 px-1 rounded text-xs">tm set-status</code> to manage your tasks.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className={`${showTerminalHint && currentView === 'projects' && projectView === 'focus' ? 'flex-1 m-4 mt-0' : 'h-full m-4'}`}>
+                    <FocusTerminal 
+                      className="h-full"
+                      cwd={selectedProject.local_folder_path}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
