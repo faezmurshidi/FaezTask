@@ -155,8 +155,9 @@ export const BranchManager: React.FC<BranchManagerProps> = ({ projectPath }) => 
   }
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm border">
-      <h3 className="text-lg font-semibold mb-4">Branch Management</h3>
+    <div className="h-full flex flex-col">
+      <div className="p-4 md:p-6 bg-white rounded-lg shadow-sm border flex-shrink-0">
+        <h3 className="text-lg font-semibold mb-4">Branch Management</h3>
       
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded text-red-700">
@@ -206,13 +207,17 @@ export const BranchManager: React.FC<BranchManagerProps> = ({ projectPath }) => 
         </div>
       </div>
 
-      {/* Branch List */}
-      <div className="space-y-2">
-        <h4 className="font-medium text-gray-700">Branches ({branches.length})</h4>
-        {branches.length === 0 ? (
-          <p className="text-gray-500 italic">No branches found</p>
-        ) : (
-          branches.map((branch) => (
+        </div>
+        
+        {/* Branch List - Scrollable */}
+        <div className="flex-1 overflow-auto p-4 md:p-6 pt-0">
+          <div className="space-y-2">
+            <h4 className="font-medium text-gray-700">Branches ({branches.length})</h4>
+            {branches.length === 0 ? (
+              <p className="text-gray-500 italic">No branches found</p>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {branches.map((branch) => (
             <div
               key={branch.name}
               className={`p-3 border rounded-lg ${
@@ -289,40 +294,43 @@ export const BranchManager: React.FC<BranchManagerProps> = ({ projectPath }) => 
                   )}
                 </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Branch Info Panel */}
-      {branchInfo && (
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-800 mb-2">Branch Information: {branchInfo.name}</h4>
-          <div className="space-y-1 text-sm">
-            <p><strong>Commit:</strong> {branchInfo.commit}</p>
-            {branchInfo.tracking && <p><strong>Tracking:</strong> {branchInfo.tracking}</p>}
-            {branchInfo.ahead && <p><strong>Ahead:</strong> {branchInfo.ahead} commits</p>}
-            {branchInfo.behind && <p><strong>Behind:</strong> {branchInfo.behind} commits</p>}
-            {branchInfo.lastCommit && (
-              <div className="mt-2 pt-2 border-t border-blue-200">
-                <p><strong>Last Commit:</strong></p>
-                <p className="ml-2">Hash: {branchInfo.lastCommit.hash.substring(0, 8)}</p>
-                <p className="ml-2">Message: {branchInfo.lastCommit.message}</p>
-                <p className="ml-2">Author: {branchInfo.lastCommit.author}</p>
-                <p className="ml-2">Date: {new Date(branchInfo.lastCommit.date).toLocaleString()}</p>
+                </div>
+                  ))
+                }
+              </div>
+            )}
+            
+            {/* Branch Info Panel */}
+            {branchInfo && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-800 mb-2">Branch Information: {branchInfo.name}</h4>
+                <div className="space-y-1 text-sm">
+                  <p><strong>Commit:</strong> {branchInfo.commit}</p>
+                  {branchInfo.tracking && <p><strong>Tracking:</strong> {branchInfo.tracking}</p>}
+                  {branchInfo.ahead && <p><strong>Ahead:</strong> {branchInfo.ahead} commits</p>}
+                  {branchInfo.behind && <p><strong>Behind:</strong> {branchInfo.behind} commits</p>}
+                  {branchInfo.lastCommit && (
+                    <div className="mt-2 pt-2 border-t border-blue-200">
+                      <p><strong>Last Commit:</strong></p>
+                      <p className="ml-2">Hash: {branchInfo.lastCommit.hash.substring(0, 8)}</p>
+                      <p className="ml-2">Message: {branchInfo.lastCommit.message}</p>
+                      <p className="ml-2">Author: {branchInfo.lastCommit.author}</p>
+                      <p className="ml-2">Date: {new Date(branchInfo.lastCommit.date).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setBranchInfo(null)}
+                  className="mt-3 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                >
+                  Close
+                </button>
               </div>
             )}
           </div>
-          <button
-            onClick={() => setBranchInfo(null)}
-            className="mt-3 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
-          >
-            Close
-          </button>
         </div>
-      )}
-    </div>
-  );
-};
+      </div>
+    );
+  };
 
 export default BranchManager; 

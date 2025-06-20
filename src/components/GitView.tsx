@@ -368,35 +368,38 @@ export default function GitView() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Git Repository</h1>
-          <div className="flex items-center mt-1 text-sm text-gray-500">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
-            </svg>
-            <span className="font-medium">Branch: {gitStatus.currentBranch || 'main'}</span>
-            {gitStatus.hasRemote && (
-              <span className="ml-2 text-green-600">• Connected to remote</span>
-            )}
+    <div className="h-full flex flex-col">
+      <div className="p-4 md:p-6 flex-shrink-0 space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Git Repository</h1>
+            <div className="flex flex-wrap items-center mt-1 text-sm text-gray-500 gap-2">
+              <div className="flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                </svg>
+                <span className="font-medium">Branch: {gitStatus.currentBranch || 'main'}</span>
+              </div>
+              {gitStatus.hasRemote && (
+                <span className="text-green-600">• Connected to remote</span>
+              )}
+            </div>
           </div>
+          <button
+            onClick={loadGitStatus}
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            title="Refresh git status"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
-        <button
-          onClick={loadGitStatus}
-          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-          title="Refresh git status"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
-      </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+        {/* Tabs */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto">
           <button
             onClick={() => setActiveTab('status')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -438,10 +441,13 @@ export default function GitView() {
             GitHub CLI
           </button>
         </nav>
+        </div>
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'status' && (
+      <div className="flex-1 overflow-auto">
+        <div className="p-4 md:p-6">
+          {activeTab === 'status' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* File Changes */}
         <div className="lg:col-span-2 space-y-4">
@@ -775,6 +781,8 @@ export default function GitView() {
           <GitHubStatus projectPath={projectPath} />
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 } 

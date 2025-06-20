@@ -87,7 +87,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
+      <div className="w-64 md:w-64 sm:w-56 xs:w-48 bg-white shadow-lg border-r border-gray-200 flex flex-col flex-shrink-0">
         {/* Draggable header area for sidebar */}
         <div 
           className="h-8 bg-white"
@@ -256,32 +256,21 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Draggable header area for main content */}
-        <div 
-          className="h-8 bg-gray-50"
-          style={{ 
-            WebkitAppRegion: 'drag',
-            position: 'absolute',
-            top: 0,
-            left: '256px',
-            right: 0,
-            zIndex: 10
-          } as React.CSSProperties}
-        />
-        
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Content */}
-        <div className="flex-1 flex flex-col overflow-hidden pt-8" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <div className="flex-1 overflow-hidden">
             <div className="flex h-full bg-gray-50">
               {/* Main Content */}
-              <div className={`${currentView === 'projects' && projectView === 'focus' && selectedProject ? 'w-1/2' : 'flex-1'} min-w-0 bg-white transition-all duration-300`}>
-                {renderMainContent()}
+              <div className={`${currentView === 'projects' && projectView === 'focus' && selectedProject ? 'lg:w-1/2 md:w-3/5 sm:w-full' : 'flex-1'} min-w-0 bg-white transition-all duration-300 overflow-hidden`}>
+                <div className="h-full overflow-auto">
+                  {renderMainContent()}
+                </div>
               </div>
               
               {/* Terminal - Always present but hidden when not in focus view */}
               {selectedProject && (
-                <div className={`${currentView === 'projects' && projectView === 'focus' ? 'w-1/2' : 'w-0'} flex flex-col border-l border-gray-200 transition-all duration-300 overflow-hidden`}>
+                <div className={`${currentView === 'projects' && projectView === 'focus' ? 'lg:w-1/2 md:w-2/5 hidden md:flex' : 'w-0'} flex-col border-l border-gray-200 transition-all duration-300 overflow-hidden`}>
                   {/* Terminal Integration Hint */}
                   {showTerminalHint && currentView === 'projects' && projectView === 'focus' && (
                     <div className="m-4 mb-2 bg-blue-50 border border-blue-200 rounded-lg p-4 relative">

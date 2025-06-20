@@ -247,16 +247,16 @@ const Focus: React.FC<FocusProps> = ({ projectPath }) => {
   }
 
   return (
-    <div className="h-full p-8 overflow-y-auto">
+    <div className="h-full p-4 md:p-6 lg:p-8 overflow-y-auto">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">🎯 Focus Mode</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">🎯 Focus Mode</h1>
           <p className="text-gray-600">Your recommended task to work on right now</p>
         </div>
 
         {/* Quick Stats */}
-        <div className="mb-8 grid grid-cols-3 gap-4">
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -302,9 +302,9 @@ const Focus: React.FC<FocusProps> = ({ projectPath }) => {
 
         {/* Focus Task Card */}
         {focusTask ? (
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 rounded-2xl p-8 shadow-lg">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 rounded-2xl p-4 md:p-6 lg:p-8 shadow-lg">
             {/* Task Header */}
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 space-y-3 sm:space-y-0">
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
                 <span className="text-sm font-medium text-blue-700 uppercase tracking-wide">
@@ -333,7 +333,7 @@ const Focus: React.FC<FocusProps> = ({ projectPath }) => {
               </p>
 
               {/* Task Metadata */}
-              <div className="flex items-center space-x-6 pt-4 border-t border-blue-200">
+              <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-blue-200">
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

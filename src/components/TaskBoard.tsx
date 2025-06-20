@@ -114,9 +114,9 @@ function TaskBoardContent({ projectPath, className }: TaskBoardProps) {
     <div className={`flex flex-col h-full ${className}`}>
       {/* Board Header */}
       <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Task Board</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Task Board</h1>
             <p className="text-gray-600 text-sm mt-1">
               {tasks.length} total tasks • {getTasksForColumn('done').length} completed
             </p>
@@ -141,7 +141,7 @@ function TaskBoardContent({ projectPath, className }: TaskBoardProps) {
           onDragEnd={handleDragEnd}
         >
           {/* Kanban Columns */}
-          <div className="flex-1 flex space-x-4 p-4 overflow-x-auto">
+          <div className="flex-1 flex space-x-4 p-4 overflow-x-auto min-w-0" style={{ minWidth: 'fit-content' }}>
             {columns
               .sort((a, b) => a.order - b.order)
               .map(column => (
