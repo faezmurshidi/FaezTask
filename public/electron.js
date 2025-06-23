@@ -1440,25 +1440,39 @@ ipcMain.handle('add-existing-project', async (event, projectPath) => {
       };
     }
     
-    // Validate that .taskmaster directory exists
+    // Check if .taskmaster directory exists
     const taskmasterPath = path.join(projectPath, '.taskmaster');
+    let hasTaskMaster = false;
+    
     try {
       const stats = await fs.stat(taskmasterPath);
-      if (!stats.isDirectory()) {
+      if (stats.isDirectory()) {
+        hasTaskMaster = true;
+      } else {
         return { 
           success: false, 
           error: '.taskmaster exists but is not a directory' 
         };
       }
     } catch (error) {
-      return { 
-        success: false, 
-        error: 'Project folder does not contain a .taskmaster directory. Please select a valid Task Master project.' 
+      // .taskmaster directory doesn't exist
+      hasTaskMaster = false;
+    }
+    
+    const projectName = path.basename(projectPath);
+    
+    if (!hasTaskMaster) {
+      // Project doesn't have Task Master - return info for initialization prompt
+      return {
+        success: false,
+        needsTaskMaster: true,
+        projectPath,
+        projectName,
+        message: 'This project does not have Task Master initialized. Would you like to set it up?'
       };
     }
     
-    // Extract project metadata
-    const projectName = path.basename(projectPath);
+    // Project has Task Master - extract metadata
     const configPath = path.join(taskmasterPath, 'config.json');
     let projectDescription = '';
     let projectConfig = null;
@@ -1484,8 +1498,6 @@ ipcMain.handle('add-existing-project', async (event, projectPath) => {
       last_opened: new Date().toISOString()
     };
     
-    // TODO: Add project to persistent projects list
-    // For now, we'll just return the metadata
     console.log('Project metadata created:', projectMetadata);
     
     return { 

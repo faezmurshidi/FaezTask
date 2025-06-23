@@ -52,7 +52,15 @@ declare global {
         skipInstall?: boolean;
         yes?: boolean;
       }) => Promise<{ success: boolean; error?: string; message?: string; projectPath?: string; taskmasterPath?: string }>;
-      addExistingProject: (projectPath: string) => Promise<{ success: boolean; error?: string; message?: string; project?: any }>;
+      addExistingProject: (projectPath: string) => Promise<{ 
+        success: boolean; 
+        error?: string; 
+        message?: string; 
+        project?: any;
+        needsTaskMaster?: boolean;
+        projectPath?: string;
+        projectName?: string;
+      }>;
       loadProjectsList: () => Promise<{ success: boolean; projects: any[]; error?: string }>;
       saveProjectsList: (projects: any[]) => Promise<{ success: boolean; error?: string }>;
       addProjectToList: (projectMetadata: any) => Promise<{ success: boolean; error?: string; projects?: any[] }>;

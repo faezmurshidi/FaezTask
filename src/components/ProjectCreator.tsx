@@ -115,13 +115,52 @@ const ProjectCreator: React.FC<ProjectCreatorProps> = ({ onProjectCreated, onCan
     setError('');
 
     try {
-      // Add existing project via IPC
+      // Check existing project via IPC
       const result = await window.electronAPI.addExistingProject(selectedFolder);
       
       if (result.success && result.project) {
-        // Add project to persistent list
+        // Project has Task Master - add to persistent list
         await window.electronAPI.addProjectToList(result.project);
         onProjectCreated?.();
+      } else if (result.needsTaskMaster) {
+        // Project needs Task Master initialization - show prompt
+        setIsProcessing(false);
+        const shouldInitialize = window.confirm(
+          `${result.message}\n\nProject: ${result.projectName}\nLocation: ${result.projectPath}\n\nThis will initialize Task Master in the selected folder.`
+        );
+        
+        if (shouldInitialize) {
+          setIsProcessing(true);
+          
+          // Initialize Task Master in the existing project
+          const initResult = await window.electronAPI.initializeTaskMaster({
+            projectPath: result.projectPath!,
+            projectName: result.projectName!,
+            projectDescription: '',
+            skipInstall: false,
+            yes: true
+          });
+
+          if (initResult.success) {
+            // After successful initialization, add project to list
+            const projectMetadata = {
+              id: `project_${Date.now()}`,
+              name: result.projectName!,
+              description: '',
+              local_folder_path: result.projectPath!,
+              status: 'active',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              last_opened: new Date().toISOString()
+            };
+
+            await window.electronAPI.addProjectToList(projectMetadata);
+            onProjectCreated?.();
+          } else {
+            throw new Error(initResult.error || 'Failed to initialize Task Master');
+          }
+        }
+        return; // Exit early if user cancels
       } else {
         throw new Error(result.error || 'Failed to add existing project');
       }
@@ -192,7 +231,7 @@ const ProjectCreator: React.FC<ProjectCreatorProps> = ({ onProjectCreated, onCan
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Add Existing Project</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Select a folder that contains an existing Task Master project (with .taskmaster directory).
+          Select any project folder. If it doesn't have Task Master initialized, we'll help you set it up.
         </p>
       </div>
 
