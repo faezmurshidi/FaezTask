@@ -1,6 +1,8 @@
-# Faez - Your Personal Software PM
+# Faez Project Master (FPM)
 
-A modern desktop project management application built specifically for solo software developers. Faez combines intelligent task management, git integration, and AI-powered assistance to streamline your development workflow.
+## Task-master + claude code + git all in one app.
+
+A modern desktop project management application built specifically for solo software developers. Use your existing task-master with built-in terminal made solely for Claude Code.
 
 ## 🚀 Features
 
