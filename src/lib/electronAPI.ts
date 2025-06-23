@@ -33,6 +33,70 @@ export const electronAPI = {
     throw new Error('File operations are only available in Electron');
   },
 
+  writeBinaryFile: async (filePath: string, base64Content: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.writeBinaryFile(filePath, base64Content);
+    }
+    throw new Error('File operations are only available in Electron');
+  },
+
+  pathExists: async (filePath: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.pathExists(filePath);
+    }
+    throw new Error('File operations are only available in Electron');
+  },
+
+  createDirectory: async (dirPath: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.createDirectory(dirPath);
+    }
+    throw new Error('File operations are only available in Electron');
+  },
+
+  readDirectory: async (dirPath: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.readDirectory(dirPath);
+    }
+    throw new Error('File operations are only available in Electron');
+  },
+
+  deleteFile: async (filePath: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.deleteFile(filePath);
+    }
+    throw new Error('File operations are only available in Electron');
+  },
+
+  renameFile: async (oldPath: string, newPath: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.renameFile(oldPath, newPath);
+    }
+    throw new Error('File operations are only available in Electron');
+  },
+
+  // Document conversion operations
+  convertDocument: async (inputPath: string, outputDir: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.convertDocument(inputPath, outputDir);
+    }
+    throw new Error('Document conversion is only available in Electron');
+  },
+
+  getSupportedExtensions: async () => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.getSupportedExtensions();
+    }
+    throw new Error('Document conversion is only available in Electron');
+  },
+
+  isFileSupported: async (filePath: string) => {
+    if (electronAPI.isElectron()) {
+      return window.electronAPI!.isFileSupported(filePath);
+    }
+    throw new Error('Document conversion is only available in Electron');
+  },
+
   // Git operations
   gitStatus: async (repoPath: string) => {
     if (electronAPI.isElectron()) {

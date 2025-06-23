@@ -5,6 +5,7 @@ const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
 const os = require('os');
 const { simpleGit } = require('simple-git');
+const documentConverter = require('./documentConverter');
 
 const execAsync = promisify(exec);
 
@@ -147,6 +148,108 @@ ipcMain.handle('write-file', async (event, filePath, content) => {
   try {
     await fs.writeFile(filePath, content, 'utf8');
     return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('write-binary-file', async (event, filePath, base64Content) => {
+  try {
+    const buffer = Buffer.from(base64Content, 'base64');
+    await fs.writeFile(filePath, buffer);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('path-exists', async (event, filePath) => {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch (error) {
+    return false;
+  }
+});
+
+ipcMain.handle('create-directory', async (event, dirPath) => {
+  try {
+    await fs.mkdir(dirPath, { recursive: true });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('read-directory', async (event, dirPath) => {
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    const files = [];
+    
+    for (const entry of entries) {
+      try {
+        const fullPath = path.join(dirPath, entry.name);
+        const stats = await fs.stat(fullPath);
+        
+        files.push({
+          name: entry.name,
+          isDirectory: entry.isDirectory(),
+          isFile: entry.isFile(),
+          size: stats.size,
+          mtime: stats.mtime.toISOString(),
+          path: fullPath
+        });
+      } catch (statError) {
+        // Skip files that can't be accessed
+        console.warn(`Could not stat file ${entry.name}:`, statError.message);
+      }
+    }
+    
+    return { success: true, files };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('delete-file', async (event, filePath) => {
+  try {
+    await fs.unlink(filePath);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('rename-file', async (event, oldPath, newPath) => {
+  try {
+    await fs.rename(oldPath, newPath);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Document conversion operations
+ipcMain.handle('convert-document', async (event, inputPath, outputDir) => {
+  try {
+    const result = await documentConverter.convertToMarkdown(inputPath, outputDir);
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-supported-extensions', async () => {
+  try {
+    return { success: true, extensions: documentConverter.getSupportedExtensions() };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('is-file-supported', async (event, filePath) => {
+  try {
+    return { success: true, supported: documentConverter.isSupported(filePath) };
   } catch (error) {
     return { success: false, error: error.message };
   }

@@ -9,6 +9,9 @@ import GitView from './GitView';
 import TaskBoard from './TaskBoard';
 import FocusTerminal from './Terminal/FocusTerminal';
 import Focus from './Focus';
+import KnowledgeBase from './KnowledgeBase';
+import { ToastProvider } from './Toast';
+import ErrorBoundary from './ErrorBoundary';
 
 interface LayoutProps {
   children: ReactNode;
@@ -54,23 +57,7 @@ export default function Layout({ children }: LayoutProps) {
         case 'kanban':
           return <TaskBoard projectPath={selectedProject.local_folder_path || ''} />;
         case 'knowledge':
-          return (
-            <div className="p-6">
-              <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Knowledge Base</h2>
-                <p className="text-gray-600">
-                  Knowledge base functionality will be implemented soon. This will include:
-                </p>
-                <ul className="mt-4 space-y-2 text-left text-gray-600 max-w-md mx-auto">
-                  <li>• Project documentation</li>
-                  <li>• Code snippets and examples</li>
-                  <li>• Meeting notes and decisions</li>
-                  <li>• API documentation</li>
-                  <li>• Best practices and guidelines</li>
-                </ul>
-              </div>
-            </div>
-          );
+          return <KnowledgeBase projectPath={selectedProject.local_folder_path || ''} />;
         default:
           return <div>Unknown project view</div>;
       }
@@ -85,7 +72,9 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <ToastProvider>
+      <ErrorBoundary>
+        <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div className="w-64 md:w-64 sm:w-56 xs:w-48 bg-white shadow-lg border-r border-gray-200 flex flex-col flex-shrink-0">
         {/* Draggable header area for sidebar */}
@@ -388,6 +377,8 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
       )}
-    </div>
+        </div>
+      </ErrorBoundary>
+    </ToastProvider>
   );
 }

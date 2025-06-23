@@ -9,6 +9,33 @@ declare global {
       showOpenDialog: (options: any) => Promise<any>;
       readFile: (filePath: string) => Promise<{ success: boolean; content?: string; error?: string }>;
       writeFile: (filePath: string, content: string) => Promise<any>;
+      writeBinaryFile: (filePath: string, base64Content: string) => Promise<{ success: boolean; error?: string }>;
+      pathExists: (filePath: string) => Promise<boolean>;
+      createDirectory: (dirPath: string) => Promise<{ success: boolean; error?: string }>;
+      readDirectory: (dirPath: string) => Promise<{ 
+        success: boolean; 
+        files?: Array<{
+          name: string;
+          isDirectory: boolean;
+          isFile: boolean;
+          size: number;
+          mtime: string;
+          path: string;
+        }>; 
+        error?: string;
+      }>;
+      deleteFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+      renameFile: (oldPath: string, newPath: string) => Promise<{ success: boolean; error?: string }>;
+      
+      // Document conversion operations
+      convertDocument: (inputPath: string, outputDir: string) => Promise<{ 
+        success: boolean; 
+        error?: string; 
+        outputPath?: string; 
+        fileType?: string; 
+      }>;
+      getSupportedExtensions: () => Promise<{ success: boolean; extensions?: string[]; error?: string }>;
+      isFileSupported: (filePath: string) => Promise<{ success: boolean; supported?: boolean; error?: string }>;
       
       // Project operations
       selectFolder: () => Promise<any>;

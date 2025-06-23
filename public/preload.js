@@ -11,6 +11,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
+  writeBinaryFile: (filePath, base64Content) => ipcRenderer.invoke('write-binary-file', filePath, base64Content),
+  pathExists: (filePath) => ipcRenderer.invoke('path-exists', filePath),
+  createDirectory: (dirPath) => ipcRenderer.invoke('create-directory', dirPath),
+  readDirectory: (dirPath) => ipcRenderer.invoke('read-directory', dirPath),
+  deleteFile: (filePath) => ipcRenderer.invoke('delete-file', filePath),
+  renameFile: (oldPath, newPath) => ipcRenderer.invoke('rename-file', oldPath, newPath),
+  
+  // Document conversion operations
+  convertDocument: (inputPath, outputDir) => ipcRenderer.invoke('convert-document', inputPath, outputDir),
+  getSupportedExtensions: () => ipcRenderer.invoke('get-supported-extensions'),
+  isFileSupported: (filePath) => ipcRenderer.invoke('is-file-supported', filePath),
   
   // Project operations
   selectFolder: () => ipcRenderer.invoke('select-folder'),
