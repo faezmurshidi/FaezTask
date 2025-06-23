@@ -1287,10 +1287,18 @@ ipcMain.handle('select-projects-directory', async () => {
   }
 });
 
-// Project management (using .taskmaster files)
+// Project management (using persistent projects list and fallback to current directory)
 ipcMain.handle('get-projects', async () => {
   try {
-    // Check if current directory is a valid task-master project
+    // First, try to load from persistent projects list
+    const persistentProjects = await loadProjects();
+    
+    if (persistentProjects.length > 0) {
+      console.log(`Loaded ${persistentProjects.length} projects from persistent storage`);
+      return persistentProjects;
+    }
+    
+    // Fallback: Check if current directory is a valid task-master project
     const currentPath = process.cwd();
     const taskMasterPath = path.join(currentPath, '.taskmaster');
     
@@ -1306,23 +1314,27 @@ ipcMain.handle('get-projects', async () => {
         // PRD file doesn't exist, that's okay
       }
       
-      return [
-        {
-          id: 'faezpm',
-          name: 'Faez PM',
-          description: 'Personal software project management companion',
-          prd_file_path: hasPrd ? prdPath : undefined,
-          local_folder_path: currentPath,
-          github_repo_url: undefined,
-          status: 'active',
-          created_at: new Date('2024-01-01'),
-          updated_at: new Date(),
-        }
-      ];
+      const fallbackProject = {
+        id: 'faezpm',
+        name: 'Faez PM',
+        description: 'Personal software project management companion',
+        prd_file_path: hasPrd ? prdPath : undefined,
+        local_folder_path: currentPath,
+        github_repo_url: undefined,
+        status: 'active',
+        created_at: new Date('2024-01-01').toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      // Auto-add this project to persistent storage
+      await saveProjects([fallbackProject]);
+      console.log('Auto-added current directory project to persistent storage');
+      
+      return [fallbackProject];
     } catch (error) {
-      // No .taskmaster directory found in current path
-      // This is a fresh install or non-project directory
-      console.log('No .taskmaster directory found, returning empty projects list');
+      // No .taskmaster directory found in current path and no persistent projects
+      // This is a fresh install
+      console.log('No projects found - fresh installation');
       return [];
     }
   } catch (error) {
@@ -1341,6 +1353,227 @@ ipcMain.handle('update-project', async (event, projectId, updates) => {
   // This would update project metadata
   console.log('Updating project:', projectId, updates);
   return { id: projectId, ...updates };
+});
+
+// New Project Creation IPC Handlers
+ipcMain.handle('initialize-taskmaster', async (event, options) => {
+  try {
+    const { projectPath, projectName, projectDescription, skipInstall, yes } = options;
+    
+    console.log('Initializing Task Master project:', { projectPath, projectName, projectDescription });
+    
+    // Ensure project directory exists
+    try {
+      await fs.access(projectPath);
+    } catch (error) {
+      // Create directory if it doesn't exist
+      await fs.mkdir(projectPath, { recursive: true });
+    }
+    
+    // Build the task-master init command
+    const initArgs = ['init'];
+    if (projectName) initArgs.push('--name', `"${projectName}"`);
+    if (projectDescription) initArgs.push('--description', `"${projectDescription}"`);
+    if (skipInstall) initArgs.push('--skip-install');
+    if (yes) initArgs.push('--yes');
+    
+    const command = `task-master ${initArgs.join(' ')}`;
+    
+    console.log('Executing command:', command, 'in directory:', projectPath);
+    
+    try {
+      const { stdout, stderr } = await execAsync(command, { 
+        cwd: projectPath,
+        timeout: 30000 // 30 seconds timeout for init
+      });
+      
+      console.log('Task Master init stdout:', stdout);
+      if (stderr && !stderr.includes('warn')) {
+        console.warn('Task Master init stderr:', stderr);
+      }
+      
+      // Verify that .taskmaster directory was created
+      const taskmasterPath = path.join(projectPath, '.taskmaster');
+      try {
+        await fs.access(taskmasterPath);
+        console.log('Task Master initialization successful - .taskmaster directory created');
+        
+        return { 
+          success: true, 
+          message: 'Task Master project initialized successfully',
+          projectPath,
+          taskmasterPath
+        };
+      } catch (verifyError) {
+        throw new Error('Task Master initialization failed - .taskmaster directory not found');
+      }
+      
+    } catch (cliError) {
+      console.error('Task Master CLI error:', cliError);
+      return { 
+        success: false, 
+        error: `Failed to initialize Task Master: ${cliError.message}`,
+        command
+      };
+    }
+    
+  } catch (error) {
+    console.error('Initialize Task Master error:', error);
+    return { 
+      success: false, 
+      error: error.message 
+    };
+  }
+});
+
+ipcMain.handle('add-existing-project', async (event, projectPath) => {
+  try {
+    console.log('Adding existing project:', projectPath);
+    
+    // Validate that the project path exists
+    try {
+      await fs.access(projectPath);
+    } catch (error) {
+      return { 
+        success: false, 
+        error: 'Project folder does not exist or is not accessible' 
+      };
+    }
+    
+    // Validate that .taskmaster directory exists
+    const taskmasterPath = path.join(projectPath, '.taskmaster');
+    try {
+      const stats = await fs.stat(taskmasterPath);
+      if (!stats.isDirectory()) {
+        return { 
+          success: false, 
+          error: '.taskmaster exists but is not a directory' 
+        };
+      }
+    } catch (error) {
+      return { 
+        success: false, 
+        error: 'Project folder does not contain a .taskmaster directory. Please select a valid Task Master project.' 
+      };
+    }
+    
+    // Extract project metadata
+    const projectName = path.basename(projectPath);
+    const configPath = path.join(taskmasterPath, 'config.json');
+    let projectDescription = '';
+    let projectConfig = null;
+    
+    // Try to read project configuration
+    try {
+      const configContent = await fs.readFile(configPath, 'utf8');
+      projectConfig = JSON.parse(configContent);
+      projectDescription = projectConfig.project?.description || '';
+    } catch (error) {
+      console.log('No config.json found or could not parse it, using defaults');
+    }
+    
+    // Create project metadata
+    const projectMetadata = {
+      id: `project_${Date.now()}`,
+      name: projectConfig?.project?.name || projectName,
+      description: projectDescription,
+      local_folder_path: projectPath,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_opened: new Date().toISOString()
+    };
+    
+    // TODO: Add project to persistent projects list
+    // For now, we'll just return the metadata
+    console.log('Project metadata created:', projectMetadata);
+    
+    return { 
+      success: true, 
+      message: 'Existing project added successfully',
+      project: projectMetadata
+    };
+    
+  } catch (error) {
+    console.error('Add existing project error:', error);
+    return { 
+      success: false, 
+      error: error.message 
+    };
+  }
+});
+
+// Project persistence system
+const PROJECTS_FILE = path.join(os.homedir(), '.faezpm', 'projects.json');
+
+async function ensureProjectsDirectory() {
+  const projectsDir = path.dirname(PROJECTS_FILE);
+  try {
+    await fs.access(projectsDir);
+  } catch (error) {
+    await fs.mkdir(projectsDir, { recursive: true });
+  }
+}
+
+async function loadProjects() {
+  try {
+    await ensureProjectsDirectory();
+    const content = await fs.readFile(PROJECTS_FILE, 'utf8');
+    return JSON.parse(content);
+  } catch (error) {
+    // If file doesn't exist or can't be read, return empty array
+    return [];
+  }
+}
+
+async function saveProjects(projects) {
+  try {
+    await ensureProjectsDirectory();
+    await fs.writeFile(PROJECTS_FILE, JSON.stringify(projects, null, 2), 'utf8');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save projects:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+ipcMain.handle('load-projects-list', async () => {
+  try {
+    const projects = await loadProjects();
+    return { success: true, projects };
+  } catch (error) {
+    return { success: false, error: error.message, projects: [] };
+  }
+});
+
+ipcMain.handle('save-projects-list', async (event, projects) => {
+  return await saveProjects(projects);
+});
+
+ipcMain.handle('add-project-to-list', async (event, projectMetadata) => {
+  try {
+    const projects = await loadProjects();
+    
+    // Check if project already exists (by path)
+    const existingIndex = projects.findIndex(p => p.local_folder_path === projectMetadata.local_folder_path);
+    
+    if (existingIndex >= 0) {
+      // Update existing project
+      projects[existingIndex] = { ...projects[existingIndex], ...projectMetadata, updated_at: new Date().toISOString() };
+    } else {
+      // Add new project
+      projects.push(projectMetadata);
+    }
+    
+    const saveResult = await saveProjects(projects);
+    if (saveResult.success) {
+      return { success: true, projects };
+    } else {
+      return { success: false, error: saveResult.error };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });
 
 // Task management (reading from .taskmaster/tasks.json)

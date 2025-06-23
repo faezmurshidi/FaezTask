@@ -849,70 +849,6 @@
         ]
       },
       {
-        "id": 19,
-        "title": "Develop Automatic Project Folder Creation",
-        "description": "Implement functionality to automatically create local project folder structure.",
-        "details": "Use Node.js fs module for file system operations. Create a service to generate folder structure based on project type. Implement templates for common project structures. Use electron-store (version 8.1.0) to remember user preferences for folder structures.",
-        "testStrategy": "Test folder creation with various project types. Verify that folder structures match defined templates. Test error handling for permission issues. Ensure that existing folders are not overwritten.",
-        "priority": "low",
-        "dependencies": [
-          3
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Implement File System Operations",
-            "description": "Develop core functions to create, delete, rename, and manage folders and files on the file system, ensuring support for local and network drives.",
-            "dependencies": [],
-            "details": "Include error handling for permissions, path validity, and disk space. Support Unicode in folder names and advanced filtering based on attributes.",
-            "status": "pending"
-          },
-          {
-            "id": 2,
-            "title": "Build Folder Structure Templates",
-            "description": "Design and define reusable folder structure templates to standardize how folders are organized for different use cases.",
-            "dependencies": [
-              1
-            ],
-            "details": "Templates should support nested subfolders and allow for parameterization (e.g., project name, date). Ensure compatibility with the file system operations.",
-            "status": "pending"
-          },
-          {
-            "id": 3,
-            "title": "Create Folder Generation Service",
-            "description": "Develop a service that generates folder structures based on selected templates and triggers file system operations accordingly.",
-            "dependencies": [
-              1
-            ],
-            "details": "The service should expose an API or interface for triggering folder creation and handle logging and notifications of outcomes.",
-            "status": "pending"
-          },
-          {
-            "id": 4,
-            "title": "Integrate User Preferences",
-            "description": "Incorporate user-specific preferences into the folder generation process, allowing customization of folder names, locations, and template selection.",
-            "dependencies": [
-              3
-            ],
-            "details": "Preferences may include default storage locations, naming conventions, and access permissions. Ensure these are respected during folder creation.",
-            "status": "pending"
-          },
-          {
-            "id": 5,
-            "title": "Test Error Handling and Robustness",
-            "description": "Develop and execute tests to validate error handling, including invalid paths, permission issues, and disk errors, ensuring the system fails gracefully.",
-            "dependencies": [
-              1,
-              3,
-              4
-            ],
-            "details": "Simulate common and edge-case failures. Verify that errors are logged, users are notified appropriately, and no orphaned or partial folder structures remain.",
-            "status": "pending"
-          }
-        ]
-      },
-      {
         "id": 20,
         "title": "Implement Performance Optimization",
         "description": "Optimize application performance for responsiveness and resource efficiency.",
@@ -1330,7 +1266,6 @@
           12,
           13,
           15,
-          19,
           20,
           21,
           22,
@@ -1698,11 +1633,53 @@
         ],
         "priority": "high",
         "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "Implement Welcome Screen for Fresh App Installations",
+        "description": "Create a comprehensive onboarding experience for first-time users opening the app without any projects.",
+        "details": "Develop a visually appealing welcome screen for users who open the app for the first time. The screen should feature an attractive hero section with the app's branding and value proposition. Highlight key features such as Dashboard, Task Management, Terminal, Git, Knowledge Base, and Time Tracking with icons and descriptions. Include a prominent 'Create Your First Project' call-to-action button that integrates with the existing GitHubRepoCreator component for project creation. Provide quick start tips and guidance for new users. Ensure the transition from the welcome screen to the project dashboard is smooth after project creation. Replace the basic 'Select a project to get started' fallback with this onboarding experience. Use responsive design principles to ensure the screen looks good on various devices and screen sizes. Implement gradients, proper spacing, and clear navigation flow to enhance user experience.",
+        "testStrategy": "Verify the welcome screen displays correctly on first app launch without any projects. Test the hero section for correct branding and value proposition display. Ensure key features are showcased with appropriate icons and descriptions. Test the 'Create Your First Project' button for functionality and integration with the GitHubRepoCreator component. Verify the transition from the welcome screen to the project dashboard after project creation. Check the responsiveness of the design on different devices and screen sizes. Ensure that quick start tips and guidance are clear and helpful for new users.",
+        "status": "done",
+        "dependencies": [
+          4,
+          26
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "Add \"+ New Project\" Option to Project Dropdown",
+        "description": "Enhance the project selection dropdown to include a \"+ New Project\" option for creating additional projects.",
+        "details": "To implement the \"+ New Project\" option in the project dropdown, first modify the dropdown component to include a special entry at the bottom labeled \"+ New Project\". When this option is selected, trigger the opening of a modal overlay using the existing GitHubRepoCreator component. Ensure the modal handles open and close states properly. After a project is successfully created, refresh the project list to include the new project. The project creation experience should mirror that of the welcome screen, ensuring consistency. Utilize the existing project management module for handling project data and interactions.",
+        "testStrategy": "1. Verify that the \"+ New Project\" option appears at the bottom of the project dropdown.\n2. Test selecting the \"+ New Project\" option to ensure the project creation modal opens using the GitHubRepoCreator component.\n3. Ensure the modal can be closed and reopened without issues.\n4. Create a new project and verify the project list refreshes to include the new project.\n5. Compare the project creation experience with the welcome screen to ensure consistency in functionality and user experience.",
+        "status": "done",
+        "dependencies": [
+          3,
+          31
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Implement Backend IPC Handlers for Project Creation",
+        "description": "Develop Electron IPC handlers to support project creation workflow, including initializing projects and adding existing ones.",
+        "details": "This task involves creating IPC handlers in the Electron main process to facilitate project creation and management. Implement the 'initializeTaskMaster' IPC handler to accept project path, name, and description, create the project directory structure, and initialize Task Master using the CLI command 'task-master init'. Ensure the handler returns a success or error status. Develop the 'addExistingProject' IPC handler to validate the presence of a .taskmaster directory in the specified project folder path, add the project to a persistent list, and return project metadata. Implement a project persistence system to store and load projects on app startup, handling metadata such as name, path, description, and last opened date. Integrate with the Task Master CLI using Node.js's child_process module to execute commands, handle output, and manage errors. Ensure robust error handling for folder permissions and CLI execution failures, providing meaningful error messages to the frontend.",
+        "testStrategy": "Verify the 'initializeTaskMaster' IPC handler creates the project directory and initializes Task Master correctly, returning appropriate status messages. Test the 'addExistingProject' handler for correct validation of the .taskmaster directory and accurate metadata return. Check the project persistence system for correct loading and saving of project data on app startup. Test CLI integration by executing commands and handling outputs and errors. Ensure error handling mechanisms provide clear and actionable messages to the frontend.",
+        "status": "done",
+        "dependencies": [
+          4,
+          26
+        ],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-06-20T01:40:05.538Z",
-      "updated": "2025-06-23T02:48:05.923Z",
+      "updated": "2025-06-23T03:28:22.770Z",
       "description": "Tasks for master context"
     }
   }

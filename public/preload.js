@@ -30,6 +30,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createProject: (projectData) => ipcRenderer.invoke('create-project', projectData),
   updateProject: (projectId, updates) => ipcRenderer.invoke('update-project', projectId, updates),
   
+  // New project creation operations
+  initializeTaskMaster: (options) => ipcRenderer.invoke('initialize-taskmaster', options),
+  addExistingProject: (projectPath) => ipcRenderer.invoke('add-existing-project', projectPath),
+  loadProjectsList: () => ipcRenderer.invoke('load-projects-list'),
+  saveProjectsList: (projects) => ipcRenderer.invoke('save-projects-list', projects),
+  addProjectToList: (projectMetadata) => ipcRenderer.invoke('add-project-to-list', projectMetadata),
+  
   // PRD Processing
   processPRDUpload: (data) => ipcRenderer.invoke('process-prd-upload', data),
   

@@ -44,6 +44,19 @@ declare global {
       createProject: (projectData: any) => Promise<any>;
       updateProject: (projectId: string, updates: any) => Promise<any>;
       
+      // New project creation operations
+      initializeTaskMaster: (options: {
+        projectPath: string;
+        projectName: string;
+        projectDescription?: string;
+        skipInstall?: boolean;
+        yes?: boolean;
+      }) => Promise<{ success: boolean; error?: string; message?: string; projectPath?: string; taskmasterPath?: string }>;
+      addExistingProject: (projectPath: string) => Promise<{ success: boolean; error?: string; message?: string; project?: any }>;
+      loadProjectsList: () => Promise<{ success: boolean; projects: any[]; error?: string }>;
+      saveProjectsList: (projects: any[]) => Promise<{ success: boolean; error?: string }>;
+      addProjectToList: (projectMetadata: any) => Promise<{ success: boolean; error?: string; projects?: any[] }>;
+      
       // PRD Processing
       processPRDUpload: (data: any) => Promise<any>;
       

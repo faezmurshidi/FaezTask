@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useState, useEffect, useRef } from 'react';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { Project } from '@/types';
 import { getProjects } from '@/lib/projectService';
 import Dashboard from './Dashboard';
@@ -12,6 +12,8 @@ import Focus from './Focus';
 import KnowledgeBase from './KnowledgeBase';
 import { ToastProvider } from './Toast';
 import ErrorBoundary from './ErrorBoundary';
+import WelcomeScreen from './WelcomeScreen';
+import ProjectCreator from './ProjectCreator';
 
 interface LayoutProps {
   children: ReactNode;
@@ -26,6 +28,7 @@ export default function Layout({ children }: LayoutProps) {
   const [projectView, setProjectView] = useState<ProjectView>('dashboard');
   const [showSettings, setShowSettings] = useState(false);
   const [showTerminalHint, setShowTerminalHint] = useState(true);
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
 
   // Load projects data
   const { data: projects, error, isLoading } = useSWR<Project[]>('projects', getProjects);
@@ -61,7 +64,29 @@ export default function Layout({ children }: LayoutProps) {
       }
     }
 
-    // Fallback
+    // Show Welcome Screen for fresh installations (no projects)
+    if (!isLoading && projects && projects.length === 0) {
+      return <WelcomeScreen onProjectCreated={() => mutate('projects')} />;
+    }
+
+    // Loading or error states
+    if (isLoading) {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <p className="text-gray-500">Loading projects...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <p className="text-red-500">Error loading projects</p>
+        </div>
+      );
+    }
+
+    // Fallback for when projects exist but none selected
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50">
         <p className="text-gray-500">Select a project to get started</p>
@@ -111,6 +136,10 @@ export default function Layout({ children }: LayoutProps) {
                     <select
                       value={selectedProject?.id || ''}
                       onChange={(e) => {
+                        if (e.target.value === '__new_project__') {
+                          setShowNewProjectModal(true);
+                          return;
+                        }
                         const project = projects.find(p => p.id === e.target.value);
                         if (project) handleProjectSelect(project);
                       }}
@@ -122,6 +151,9 @@ export default function Layout({ children }: LayoutProps) {
                           {project.name}
                         </option>
                       ))}
+                      <option value="__new_project__" className="font-medium text-blue-600">
+                        + New Project
+                      </option>
                     </select>
                   </div>
                 )}
@@ -390,6 +422,35 @@ export default function Layout({ children }: LayoutProps) {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Project Modal */}
+      {showNewProjectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
+                <button
+                  onClick={() => setShowNewProjectModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <ProjectCreator 
+                onProjectCreated={() => {
+                  setShowNewProjectModal(false);
+                  mutate('projects'); // Refresh projects list
+                }}
+                onCancel={() => setShowNewProjectModal(false)}
+              />
             </div>
           </div>
         </div>
