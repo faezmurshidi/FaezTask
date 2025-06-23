@@ -4,37 +4,13 @@ import React, { useState, useMemo } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import '../styles/dashboard-responsive.css';
 import GitActivityWidget from './Dashboard/GitActivityWidget';
+import TodaysTasks from './Dashboard/TodaysTasks';
+import ActiveTimeTracking from './Dashboard/ActiveTimeTracking';
+import DailyProgressSummary from './Dashboard/DailyProgressSummary';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
-
-// Widget components (placeholders for now, will be implemented in subsequent subtasks)
-const TodaysTasks = () => (
-  <div className="h-full bg-white rounded-lg border border-gray-200 p-4">
-    <h3 className="text-lg font-semibold text-gray-800 mb-4">Today&apos;s Tasks</h3>
-    <div className="text-gray-500 text-center">
-      <p>TodaysTasks widget coming soon...</p>
-    </div>
-  </div>
-);
-
-const ActiveTimeTracking = () => (
-  <div className="h-full bg-white rounded-lg border border-gray-200 p-4">
-    <h3 className="text-lg font-semibold text-gray-800 mb-4">Active Time Tracking</h3>
-    <div className="text-gray-500 text-center">
-      <p>ActiveTimeTracking widget coming soon...</p>
-    </div>
-  </div>
-);
-
-const DailyProgressSummary = () => (
-  <div className="h-full bg-white rounded-lg border border-gray-200 p-4">
-    <h3 className="text-lg font-semibold text-gray-800 mb-4">Daily Progress Summary</h3>
-    <div className="text-gray-500 text-center">
-      <p>DailyProgressSummary widget coming soon...</p>
-    </div>
-  </div>
-);
 
 interface DashboardProps {
   className?: string;
@@ -88,49 +64,55 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // Widget renderer mapping
   const widgets = useMemo(() => ({
-    'today-tasks': <TodaysTasks />,
-    'time-tracking': <ActiveTimeTracking />,
-    'progress-summary': <DailyProgressSummary />,
+    'today-tasks': <TodaysTasks projectPath={projectPath} />,
+    'time-tracking': <ActiveTimeTracking projectPath={projectPath} />,
+    'progress-summary': <DailyProgressSummary projectPath={projectPath} />,
     'git-activity': <GitActivityWidget projectPath={projectPath} />,
   }), [projectPath]);
 
   return (
     <div className={`flex-1 flex flex-col overflow-hidden bg-gray-50 ${className}`}>
       {/* Dashboard Header */}
-      <div className="flex-shrink-0 p-6 bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between">
+      <div className="flex-shrink-0 p-4 sm:p-6 bg-white border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 text-sm mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 text-xs sm:text-sm mt-1 hidden sm:block">
               Your personal software project management companion
             </p>
           </div>
           
           {/* Dashboard Controls */}
-          <div className="flex items-center space-x-3">
+          <div className="dashboard-controls flex items-center space-x-2 sm:space-x-3">
             <button
               onClick={() => setIsLayoutLocked(!isLayoutLocked)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors touch-target ${
                 isLayoutLocked
                   ? 'bg-red-100 text-red-700 hover:bg-red-200'
                   : 'bg-green-100 text-green-700 hover:bg-green-200'
               }`}
             >
-              {isLayoutLocked ? 'Unlock Layout' : 'Lock Layout'}
+              <span className="hidden sm:inline">
+                {isLayoutLocked ? 'Unlock Layout' : 'Lock Layout'}
+              </span>
+              <span className="sm:hidden">
+                {isLayoutLocked ? 'Unlock' : 'Lock'}
+              </span>
             </button>
             
             <button
               onClick={() => setLayouts(defaultLayouts)}
-              className="px-3 py-1.5 text-sm font-medium bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors touch-target"
             >
-              Reset Layout
+              <span className="hidden sm:inline">Reset Layout</span>
+              <span className="sm:hidden">Reset</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Dashboard Grid */}
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 p-2 sm:p-4 lg:p-6 overflow-auto">
         <ResponsiveGridLayout
           className="layout"
           layouts={layouts}
@@ -140,12 +122,13 @@ const Dashboard: React.FC<DashboardProps> = ({
           rowHeight={60}
           isDraggable={!isLayoutLocked}
           isResizable={!isLayoutLocked}
-          margin={[16, 16]}
+          margin={[8, 8]}
           containerPadding={[0, 0]}
           useCSSTransforms={true}
           measureBeforeMount={false}
           preventCollision={false}
           compactType="vertical"
+          autoSize={true}
         >
           {Object.entries(widgets).map(([key, component]) => (
             <div key={key} className="dashboard-widget">

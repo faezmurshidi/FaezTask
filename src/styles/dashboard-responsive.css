@@ -1,0 +1,182 @@
+/* Dashboard Responsive Improvements */
+
+/* Global widget responsiveness */
+.dashboard-widget {
+  @apply overflow-hidden;
+}
+
+/* Responsive grid layout improvements */
+.react-grid-layout {
+  position: relative;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNiIgaGVpZ2h0PSI2IiB2aWV3Qm94PSIwIDAgNiA2IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8ZG90cyBmaWxsPSIjOTk5IiBjeD0iMSIgY3k9IjEiIHI9IjEiLz4KPGRvdHMgZmlsbD0iIzk5OSIgY3g9IjUiIGN5PSIxIiByPSIxIi8+CjxkdXRzIGZpbGw9IiM5OTkiIGN4PSIxIiBjeT0iNSIgcj0iMSIvPgo8ZG90cyBmaWxsPSIjOTk5IiBjeD0iNSIgY3k9IjUiIHI9IjEiLz4KPC9zdmc+');
+  background-position: bottom right;
+  padding: 0 3px 3px 0;
+  background-repeat: no-repeat;
+  background-origin: content-box;
+  box-sizing: border-box;
+  cursor: se-resize;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Reduce margins on mobile */
+  .react-grid-layout {
+    margin: -8px;
+  }
+  
+  .react-grid-item {
+    margin: 8px;
+  }
+  
+  /* Improve touch targets */
+  .react-grid-item > .react-resizable-handle {
+    width: 30px;
+    height: 30px;
+  }
+  
+  /* Hide resize handles on very small screens */
+  @media (max-width: 480px) {
+    .react-grid-item > .react-resizable-handle {
+      display: none;
+    }
+  }
+}
+
+/* Tablet improvements */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .react-grid-layout {
+    margin: -12px;
+  }
+  
+  .react-grid-item {
+    margin: 12px;
+  }
+}
+
+/* Desktop improvements */
+@media (min-width: 1025px) {
+  .react-grid-layout {
+    margin: -16px;
+  }
+  
+  .react-grid-item {
+    margin: 16px;
+  }
+}
+
+/* Widget content responsiveness */
+.widget-content {
+  @apply h-full flex flex-col;
+}
+
+.widget-header {
+  @apply flex-shrink-0 pb-2 mb-4 border-b border-gray-200;
+}
+
+.widget-body {
+  @apply flex-1 overflow-auto;
+}
+
+/* Chart responsiveness */
+.recharts-responsive-container {
+  @apply w-full h-full;
+}
+
+/* Text scaling for different screen sizes */
+@media (max-width: 480px) {
+  .widget-title {
+    @apply text-base;
+  }
+  
+  .widget-subtitle {
+    @apply text-xs;
+  }
+  
+  .stat-value {
+    @apply text-lg;
+  }
+  
+  .stat-label {
+    @apply text-xs;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .widget-title {
+    @apply text-lg;
+  }
+  
+  .widget-subtitle {
+    @apply text-sm;
+  }
+  
+  .stat-value {
+    @apply text-xl;
+  }
+  
+  .stat-label {
+    @apply text-sm;
+  }
+}
+
+@media (min-width: 769px) {
+  .widget-title {
+    @apply text-xl;
+  }
+  
+  .widget-subtitle {
+    @apply text-base;
+  }
+  
+  .stat-value {
+    @apply text-2xl;
+  }
+  
+  .stat-label {
+    @apply text-sm;
+  }
+}
+
+/* Button and interaction improvements for touch devices */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch device optimizations */
+  button {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  .touch-target {
+    @apply p-3;
+  }
+}
+
+/* Print styles */
+@media print {
+  .dashboard-controls {
+    @apply hidden;
+  }
+  
+  .react-grid-item > .react-resizable-handle {
+    @apply hidden;
+  }
+  
+  .dashboard-widget {
+    @apply break-inside-avoid;
+  }
+} 

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron');  
+const { app, BrowserWindow, Menu, ipcMain, dialog, globalShortcut } = require('electron');  
 const path = require('path');
 const fs = require('fs').promises;
 const { exec, spawn } = require('child_process');
@@ -56,13 +56,41 @@ async function createWindow() {
     }
   } else {
     // Production mode - load from packaged files
-    // When using extraResource, files are in Resources directory alongside app.asar
-    const resourcesPath = process.resourcesPath;
-    const htmlPath = path.join(resourcesPath, 'out/index.html');
+    // Files are now included in the asar, so load from __dirname
+    const htmlPath = path.join(__dirname, '..', 'out', 'index.html');
     console.log('Loading file from:', htmlPath);
-    console.log('Resources path:', resourcesPath);
-    await mainWindow.loadFile(htmlPath);
-    console.log('Successfully loaded packaged app');
+    console.log('__dirname:', __dirname);
+    
+    // Check if file exists first
+    try {
+      await fs.access(htmlPath);
+      console.log('HTML file exists at:', htmlPath);
+      await mainWindow.loadFile(htmlPath);
+      console.log('Successfully loaded packaged app');
+    } catch (error) {
+      console.error('HTML file not found at:', htmlPath);
+      // Try alternative paths
+      const altPaths = [
+        path.join(process.resourcesPath, 'out', 'index.html'),
+        path.join(process.cwd(), 'out', 'index.html'),
+        path.join(__dirname, 'out', 'index.html')
+      ];
+      
+      for (const altPath of altPaths) {
+        try {
+          console.log('Trying alternative path:', altPath);
+          await fs.access(altPath);
+          console.log('Found HTML at alternative path:', altPath);
+          await mainWindow.loadFile(altPath);
+          console.log('Successfully loaded packaged app from alternative path');
+          return;
+        } catch (altError) {
+          console.log('Alternative path failed:', altPath, altError.message);
+        }
+      }
+      
+      throw new Error('Could not find index.html in any expected location');
+    }
   }
   
   // Show window after successful load
@@ -90,20 +118,131 @@ async function createWindow() {
     mainWindow.webContents.openDevTools();
   }
 
+  // Create application menu
+  createMenu();
+
   // Handle window closed
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
+// Create application menu
+function createMenu() {
+  const template = [
+    {
+      label: 'Faez PM',
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services', submenu: [] },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideothers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectall' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { 
+          label: 'Toggle Developer Tools',
+          accelerator: process.platform === 'darwin' ? 'Alt+Cmd+I' : 'Ctrl+Shift+I',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.toggleDevTools();
+            }
+          }
+        },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'close' }
+      ]
+    }
+  ];
+
+  // Adjust menu for non-macOS platforms
+  if (process.platform !== 'darwin') {
+    template.unshift({
+      label: 'File',
+      submenu: [
+        { role: 'quit' }
+      ]
+    });
+    
+    // Remove macOS-specific items from the first menu
+    template[1].submenu = [
+      { role: 'about' },
+      { type: 'separator' },
+      { role: 'quit' }
+    ];
+  }
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
+// Register global shortcuts for dev tools
+function registerGlobalShortcuts() {
+  // Register global shortcut for dev tools (works even when app isn't focused)
+  globalShortcut.register('CommandOrControl+Shift+I', () => {
+    if (mainWindow) {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
+  
+  // Alternative shortcut for macOS
+  if (process.platform === 'darwin') {
+    globalShortcut.register('Command+Option+I', () => {
+      if (mainWindow) {
+        mainWindow.webContents.toggleDevTools();
+      }
+    });
+  }
+}
+
 // This method will be called when Electron has finished initialization
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  registerGlobalShortcuts();
+});
 
 // Quit when all windows are closed
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Clean up shortcuts when app quits
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on('activate', () => {
@@ -1150,22 +1289,46 @@ ipcMain.handle('select-projects-directory', async () => {
 
 // Project management (using .taskmaster files)
 ipcMain.handle('get-projects', async () => {
-  // This would scan for .taskmaster directories and return project info
-  // For now, return mock data for the current project
-  const currentPath = process.cwd();
-  return [
-    {
-      id: 'faezpm',
-      name: 'Faez PM',
-      description: 'Personal software project management companion',
-      prd_file_path: path.join(currentPath, 'faez_prd.md'),
-      local_folder_path: currentPath,
-      github_repo_url: undefined,
-      status: 'active',
-      created_at: new Date('2024-01-01'),
-      updated_at: new Date(),
+  try {
+    // Check if current directory is a valid task-master project
+    const currentPath = process.cwd();
+    const taskMasterPath = path.join(currentPath, '.taskmaster');
+    
+    try {
+      await fs.access(taskMasterPath);
+      // Current directory has .taskmaster, so it's a valid project
+      const prdPath = path.join(currentPath, 'faez_prd.md');
+      let hasPrd = false;
+      try {
+        await fs.access(prdPath);
+        hasPrd = true;
+      } catch (e) {
+        // PRD file doesn't exist, that's okay
+      }
+      
+      return [
+        {
+          id: 'faezpm',
+          name: 'Faez PM',
+          description: 'Personal software project management companion',
+          prd_file_path: hasPrd ? prdPath : undefined,
+          local_folder_path: currentPath,
+          github_repo_url: undefined,
+          status: 'active',
+          created_at: new Date('2024-01-01'),
+          updated_at: new Date(),
+        }
+      ];
+    } catch (error) {
+      // No .taskmaster directory found in current path
+      // This is a fresh install or non-project directory
+      console.log('No .taskmaster directory found, returning empty projects list');
+      return [];
     }
-  ];
+  } catch (error) {
+    console.error('Error in get-projects:', error);
+    return [];
+  }
 });
 
 ipcMain.handle('create-project', async (event, projectData) => {

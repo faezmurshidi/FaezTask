@@ -88,7 +88,7 @@ export const GitHubRepoCreator: React.FC<GitHubRepoCreatorProps> = ({
         setNameCheckLoading(true);
         try {
           const result = await window.electronAPI.githubCheckRepoName(formData.name.trim(), username);
-          setNameAvailable(result.success ? result.available : null);
+          setNameAvailable(result.success && result.available !== undefined ? result.available : null);
         } catch (err) {
           console.error('Name check failed:', err);
           setNameAvailable(null);

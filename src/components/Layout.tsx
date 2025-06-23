@@ -17,13 +17,13 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-type MainView = 'dashboard' | 'projects';
-type ProjectView = 'focus' | 'git' | 'kanban' | 'knowledge';
+type MainView = 'projects';
+type ProjectView = 'dashboard' | 'focus' | 'git' | 'kanban' | 'knowledge';
 
 export default function Layout({ children }: LayoutProps) {
-  const [currentView, setCurrentView] = useState<MainView>('dashboard');
+  const [currentView, setCurrentView] = useState<MainView>('projects');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [projectView, setProjectView] = useState<ProjectView>('focus');
+  const [projectView, setProjectView] = useState<ProjectView>('dashboard');
   const [showSettings, setShowSettings] = useState(false);
   const [showTerminalHint, setShowTerminalHint] = useState(true);
 
@@ -40,16 +40,14 @@ export default function Layout({ children }: LayoutProps) {
   const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
     setCurrentView('projects');
-    setProjectView('focus'); // Default to focus when selecting a project
+    setProjectView('dashboard'); // Default to dashboard when selecting a project
   };
 
   const renderMainContent = () => {
-    if (currentView === 'dashboard') {
-      return <Dashboard />;
-    }
-
     if (currentView === 'projects' && selectedProject) {
       switch (projectView) {
+        case 'dashboard':
+          return <Dashboard projectPath={selectedProject.local_folder_path || '/Users/faez/Documents/FaezPM'} />;
         case 'focus':
           return <Focus projectPath={selectedProject.local_folder_path || '/Users/faez/Documents/FaezPM'} />;
         case 'git':
@@ -100,26 +98,6 @@ export default function Layout({ children }: LayoutProps) {
         {/* Main Navigation */}
         <nav className="p-4 flex-1">
           <ul className="space-y-2">
-            {/* Dashboard */}
-            <li>
-              <button 
-                onClick={() => setCurrentView('dashboard')}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentView === 'dashboard' 
-                    ? 'bg-blue-100 text-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-                style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-              >
-                <div className="flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                  </svg>
-                  Dashboard
-                </div>
-              </button>
-            </li>
-
             {/* Projects Dropdown */}
             <li>
               <div className="space-y-1">
@@ -148,9 +126,48 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                 )}
 
+                {/* No Projects Message */}
+                {projects && projects.length === 0 && (
+                  <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                    <p>No projects found</p>
+                    <p className="text-xs mt-1">Create a project to get started</p>
+                  </div>
+                )}
+
+                {/* Loading State */}
+                {isLoading && (
+                  <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                    <p>Loading projects...</p>
+                  </div>
+                )}
+
+                {/* Error State */}
+                {error && (
+                  <div className="px-3 py-2 text-sm text-red-500 text-center">
+                    <p>Error loading projects</p>
+                  </div>
+                )}
+
                 {/* Project Views */}
                 {selectedProject && (
                   <div className="space-y-1 ml-4">
+                    <button 
+                      onClick={() => { setCurrentView('projects'); setProjectView('dashboard'); }}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        currentView === 'projects' && projectView === 'dashboard'
+                          ? 'bg-blue-100 text-blue-700' 
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                      style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+                    >
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                        </svg>
+                        Dashboard
+                      </div>
+                    </button>
+
                     <button 
                       onClick={() => { setCurrentView('projects'); setProjectView('focus'); }}
                       className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -257,7 +274,7 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </div>
               
-              {/* Terminal - Always present but hidden when not in focus view */}
+              {/* Terminal - Only visible in focus view */}
               {selectedProject && (
                 <div className={`${currentView === 'projects' && projectView === 'focus' ? 'lg:w-1/2 md:w-2/5 hidden md:flex' : 'w-0'} flex-col border-l border-gray-200 transition-all duration-300 overflow-hidden`}>
                   {/* Terminal Integration Hint */}
